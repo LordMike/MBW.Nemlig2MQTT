@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "MBW.Nemlig2MQTT": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
