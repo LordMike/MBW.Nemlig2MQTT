@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,8 +23,6 @@ namespace MBW.Nemlig2MQTT.Service
 {
     internal class NemligBasketMqttService : BackgroundService
     {
-        private static readonly Uri NemligBaseUrl = new Uri("https://www.nemlig.com/");
-
         private readonly ILogger<NemligBasketMqttService> _logger;
         private readonly NemligClient _nemligClient;
         private readonly HassMqttManager _hassMqttManager;
@@ -142,7 +141,7 @@ namespace MBW.Nemlig2MQTT.Service
                 attr.SetAttribute($"line_{i}_description", line.Description);
                 attr.SetAttribute($"line_{i}_image", line.PrimaryImage);
                 attr.SetAttribute($"line_{i}_price", line.Price);
-                attr.SetAttribute($"line_{i}_url", new Uri(NemligBaseUrl, line.Url).ToString());
+                attr.SetAttribute($"line_{i}_url", new Uri(_nemligClient.NemligUrl, line.Url).ToString());
             }
         }
 

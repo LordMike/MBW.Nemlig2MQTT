@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using MBW.Client.NemligCom.Objects.Delivery;
 using MBW.HassMQTT;
 using MBW.HassMQTT.CommonServices;
 using MBW.HassMQTT.CommonServices.Commands;
@@ -10,6 +11,7 @@ using MBW.Nemlig2MQTT.Commands;
 using MBW.Nemlig2MQTT.Configuration;
 using MBW.Nemlig2MQTT.Helpers;
 using MBW.Nemlig2MQTT.Service;
+using MBW.Nemlig2MQTT.Service.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -66,6 +68,7 @@ namespace MBW.Nemlig2MQTT
                 {
                     NemligHassConfiguration nemligConfig = context.Configuration.GetSection("HASS").Get<NemligHassConfiguration>();
                     configuration.SendDiscoveryDocuments = nemligConfig.EnableHASSDiscovery;
+                    configuration.ValidateDiscoveryDocuments = true;
                 })
                 .Configure<CommonMqttConfiguration>(x => x.ClientId = "nemlig2mqtt")
                 .Configure<CommonMqttConfiguration>(context.Configuration.GetSection("MQTT"));
@@ -75,12 +78,15 @@ namespace MBW.Nemlig2MQTT
                 .AddMqttCommandService()
                 .AddMqttCommandHandler<BasketSyncCommand>()
                 .AddMqttCommandHandler<BasketAddCommand>()
-                .AddMqttCommandHandler<BasketClearCommand>();
+                .AddMqttCommandHandler<BasketClearCommand>()
+                .AddMqttCommandHandler<DeliveryTimeSetCommand>();
 
             services
                 .Configure<NemligHassConfiguration>(context.Configuration.GetSection("HASS"))
                 .Configure<HassConfiguration>(context.Configuration.GetSection("HASS"))
                 .Configure<NemligConfiguration>(context.Configuration.GetSection("Nemlig"))
+                .Configure<NemligDeliveryConfiguration>(context.Configuration.GetSection("Nemlig"))
+                .PostConfigure<NemligDeliveryConfiguration>(x => x.AllowDeliveryTypes ??= new[] { NemligDeliveryType.Attended, NemligDeliveryType.Unattended })
                 .Configure<ProxyConfiguration>(context.Configuration.GetSection("Proxy"))
                 .AddSingleton(x => new HassMqttTopicBuilder(x.GetOptions<HassConfiguration>()))
                 .AddSingleton<CookieContainer>()
@@ -96,7 +102,7 @@ namespace MBW.Nemlig2MQTT
 
                     SocketsHttpHandler handler = new SocketsHttpHandler
                     {
-                        UseCookies = true, 
+                        UseCookies = true,
                         CookieContainer = provider.GetRequiredService<CookieContainer>()
                     };
 
@@ -117,8 +123,10 @@ namespace MBW.Nemlig2MQTT
                 });
 
             services
+                .AddSingleton<DeliveryRenderer>()
                 .AddSingletonAndHostedService<ApiOperationalContainer>()
-                .AddSingletonAndHostedService<NemligBasketMqttService>();
+                .AddSingletonAndHostedService<NemligBasketMqttService>()
+                .AddSingletonAndHostedService<NemligDeliveryOptionsMqttService>();
         }
     }
 }
