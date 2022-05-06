@@ -188,7 +188,7 @@ namespace MBW.Nemlig2MQTT.Service
                 .ConfigureDiscovery(discovery =>
                 {
                     discovery.Name = "Nemlig basket ready to order";
-                    discovery.DeviceClass = HassDeviceClass.Problem;
+                    discovery.DeviceClass = HassBinarySensorDeviceClass.Problem;
                     discovery.PayloadOn = "not_ready";
                     discovery.PayloadOff = "ready";
                 })

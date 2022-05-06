@@ -1,5 +1,6 @@
 ﻿using System;
 using MBW.HassMQTT.DiscoveryModels;
+using MBW.HassMQTT.DiscoveryModels.Interfaces;
 using MBW.HassMQTT.Extensions;
 using MBW.HassMQTT.Interfaces;
 using MBW.Nemlig2MQTT.HASS;
@@ -33,12 +34,12 @@ namespace MBW.Nemlig2MQTT.Helpers
                 .AddHostedService(x => x.GetRequiredService<TService>());
         }
 
-        public static IDiscoveryDocumentBuilder<T> ConfigureBasketDevice<T>(this IDiscoveryDocumentBuilder<T> builder) where T : MqttSensorDiscoveryBase
+        public static IDiscoveryDocumentBuilder<T> ConfigureBasketDevice<T>(this IDiscoveryDocumentBuilder<T> builder) where T : IHassDiscoveryDocument
         {
             return builder.ConfigureDevice(device =>
             {
                 device.Name = "Nemlig Basket";
-                device.Identifiers = new[] {HassUniqueIdBuilder.GetBasketDeviceId()};
+                device.Identifiers.Add(HassUniqueIdBuilder.GetBasketDeviceId());
             });
         }
     }

@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using MBW.HassMQTT;
 using MBW.HassMQTT.CommonServices;
 using MBW.HassMQTT.CommonServices.Commands;
-using MBW.HassMQTT.CommonServices.MqttReconnect;
 using MBW.HassMQTT.Topics;
 using MBW.Nemlig2MQTT.Commands;
 using MBW.Nemlig2MQTT.Configuration;
@@ -69,8 +68,7 @@ namespace MBW.Nemlig2MQTT
                     configuration.SendDiscoveryDocuments = nemligConfig.EnableHASSDiscovery;
                 })
                 .Configure<CommonMqttConfiguration>(x => x.ClientId = "nemlig2mqtt")
-                .Configure<CommonMqttConfiguration>(context.Configuration.GetSection("MQTT"))
-                .Configure<MqttReconnectionServiceConfig>(context.Configuration.GetSection("MQTT"));
+                .Configure<CommonMqttConfiguration>(context.Configuration.GetSection("MQTT"));
 
             // Commands
             services
