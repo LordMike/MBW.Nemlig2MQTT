@@ -42,5 +42,14 @@ namespace MBW.Nemlig2MQTT.Helpers
                 device.Identifiers.Add(HassUniqueIdBuilder.GetBasketDeviceId());
             });
         }
+
+        public static IDiscoveryDocumentBuilder<T> ConfigureNextDeliveryDevice<T>(this IDiscoveryDocumentBuilder<T> builder) where T : IHassDiscoveryDocument
+        {
+            return builder.ConfigureDevice(device =>
+            {
+                device.Name = "Nemlig next delivery";
+                device.Identifiers.Add(HassUniqueIdBuilder.GetNextDeliveryDeviceId());
+            });
+        }
     }
 }

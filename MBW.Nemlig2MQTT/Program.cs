@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using MBW.Client.NemligCom.Objects.Delivery;
+using MBW.Client.NemligCom.DependencyInjection;
 using MBW.HassMQTT;
 using MBW.HassMQTT.CommonServices;
 using MBW.HassMQTT.CommonServices.Commands;
@@ -79,6 +80,7 @@ namespace MBW.Nemlig2MQTT
                 .AddMqttCommandHandler<BasketSyncCommand>()
                 .AddMqttCommandHandler<BasketAddCommand>()
                 .AddMqttCommandHandler<BasketClearCommand>()
+                .AddMqttCommandHandler<BasketOrderCcCommand>()
                 .AddMqttCommandHandler<DeliveryTimeSetCommand>();
 
             services
@@ -126,7 +128,8 @@ namespace MBW.Nemlig2MQTT
                 .AddSingleton<DeliveryRenderer>()
                 .AddSingletonAndHostedService<ApiOperationalContainer>()
                 .AddSingletonAndHostedService<NemligBasketMqttService>()
-                .AddSingletonAndHostedService<NemligDeliveryOptionsMqttService>();
+                .AddSingletonAndHostedService<NemligDeliveryOptionsMqttService>()
+                .AddSingletonAndHostedService<NemligNextDeliveryMqttService>();
         }
     }
 }

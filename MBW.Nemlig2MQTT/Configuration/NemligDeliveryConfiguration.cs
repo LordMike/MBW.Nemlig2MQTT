@@ -28,5 +28,9 @@ namespace MBW.Nemlig2MQTT.Configuration
         public int? MaxDeliveryPrice { get; set; }
 
         public NemligDeliveryType[] AllowDeliveryTypes { get; set; }
+
+
+        [Range(typeof(TimeSpan), "00:01:00", "15.00:00:00")]
+        public TimeSpan NextDeliveryCheckInterval { get; set; } = TimeSpan.FromHours(1);
     }
 }

@@ -11,5 +11,10 @@
         {
             return "basket";
         }
+
+        public static string GetNextDeliveryDeviceId()
+        {
+            return "nxetdelivery";
+        }
     }
 }

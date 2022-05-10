@@ -14,6 +14,7 @@ using MBW.HassMQTT.Interfaces;
 using MBW.Nemlig2MQTT.Configuration;
 using MBW.Nemlig2MQTT.HASS;
 using MBW.Nemlig2MQTT.Helpers;
+using MBW.Nemlig2MQTT.Service.Helpers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -25,6 +26,7 @@ namespace MBW.Nemlig2MQTT.Service
     {
         private readonly ILogger<NemligBasketMqttService> _logger;
         private readonly NemligClient _nemligClient;
+        private readonly DeliveryRenderer _deliveryRenderer;
         private readonly HassMqttManager _hassMqttManager;
         private readonly ApiOperationalContainer _apiOperationalContainer;
         private readonly NemligConfiguration _config;
@@ -39,11 +41,13 @@ namespace MBW.Nemlig2MQTT.Service
             ILogger<NemligBasketMqttService> logger,
             IOptions<NemligConfiguration> config,
             NemligClient nemligClient,
+            DeliveryRenderer deliveryRenderer,
             HassMqttManager hassMqttManager,
             ApiOperationalContainer apiOperationalContainer)
         {
             _logger = logger;
             _nemligClient = nemligClient;
+            _deliveryRenderer = deliveryRenderer;
             _hassMqttManager = hassMqttManager;
             _apiOperationalContainer = apiOperationalContainer;
             _config = config.Value;
@@ -126,23 +130,7 @@ namespace MBW.Nemlig2MQTT.Service
             else
                 _basketReadyToOrder.SetValue(HassTopicKind.State, "not_ready");
 
-            string[] lines = basket.Lines.Select(s => $"{s.Quantity}x {s.Name} ({s.Price:#0.00} DKK)").ToArray();
-            _basketContents.SetValue(HassTopicKind.State, lines);
-            attr = _basketContents.GetAttributesSender();
-            attr.Clear();
-
-            for (int i = 0; i < basket.Lines.Length; i++)
-            {
-                Line line = basket.Lines[i];
-
-                attr.SetAttribute($"line_{i}_id", line.Id);
-                attr.SetAttribute($"line_{i}_name", line.Name);
-                attr.SetAttribute($"line_{i}_quantity", line.Quantity);
-                attr.SetAttribute($"line_{i}_description", line.Description);
-                attr.SetAttribute($"line_{i}_image", line.PrimaryImage);
-                attr.SetAttribute($"line_{i}_price", line.Price);
-                attr.SetAttribute($"line_{i}_url", new Uri(_nemligClient.NemligUrl, line.Url).ToString());
-            }
+            _deliveryRenderer.RenderContents(_basketContents, basket.Lines);
         }
 
         private void CreateEntities()

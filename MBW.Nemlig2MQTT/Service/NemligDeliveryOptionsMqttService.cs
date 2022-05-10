@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MBW.Client.NemligCom;
+using MBW.Client.NemligCom.Objects.Checkout;
 using MBW.Client.NemligCom.Objects.Delivery;
 using MBW.HassMQTT;
 using MBW.HassMQTT.CommonServices.AliveAndWill;
@@ -36,6 +37,7 @@ namespace MBW.Nemlig2MQTT.Service
         private readonly ApiOperationalContainer _apiOperationalContainer;
         private readonly AsyncAutoResetEvent _syncEvent = new AsyncAutoResetEvent();
         private readonly NemligDeliveryConfiguration _config;
+        private readonly HassConfiguration _hassConfig;
         private readonly BitArray _prioritizeHours;
         private readonly Dictionary<string, int> _callbackLookup = new Dictionary<string, int>(StringComparer.Ordinal);
 
@@ -45,6 +47,7 @@ namespace MBW.Nemlig2MQTT.Service
         public NemligDeliveryOptionsMqttService(
             ILogger<NemligDeliveryOptionsMqttService> logger,
             IOptions<NemligDeliveryConfiguration> config,
+            IOptions<HassConfiguration> hassConfig,
             NemligClient nemligClient,
             HassMqttManager hassMqttManager,
             ApiOperationalContainer apiOperationalContainer,
@@ -56,6 +59,7 @@ namespace MBW.Nemlig2MQTT.Service
             _apiOperationalContainer = apiOperationalContainer;
             _deliveryRenderer = deliveryRenderer;
             _config = config.Value;
+            _hassConfig = hassConfig.Value;
 
             _prioritizeHours = new BitArray(24);
             if (_config.PrioritizeHours != null)
@@ -80,6 +84,14 @@ namespace MBW.Nemlig2MQTT.Service
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             CreateEntities();
+
+            {
+                _logger.LogDebug("Updating stored cards once");
+
+                NemligCreditCard[] cardsResponse = await _nemligClient.GetCreditCards(token: stoppingToken);
+
+                CreateEntities(cardsResponse);
+            }
 
             // Update loop
             while (!stoppingToken.IsCancellationRequested)
@@ -183,7 +195,7 @@ namespace MBW.Nemlig2MQTT.Service
                 // Take the best
                 .Append(allOptions.First())
                 // Take the currently picked
-                .Append(currentSelected.Value)
+                .Append(currentSelected ?? default)
                 // Take the best, for each day
                 .Concat(allOptions.GroupBy(s => s.DeliveryTime.Date.Date).Select(s => s.OrderByDescending(x => x.Score).First()))
                 // Take the best, for each days night hours (this is prob. only unattended, but should be included always)
@@ -217,6 +229,33 @@ namespace MBW.Nemlig2MQTT.Service
                 .ConfigureAliveService();
 
             _deliverySelect = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), "delivery_select");
+        }
+
+        private void CreateEntities(NemligCreditCard[] cardsResponse)
+        {
+            // Create one button / service for each card
+            foreach (NemligCreditCard card in cardsResponse)
+            {
+                _hassMqttManager.ConfigureSensor<MqttButton>(HassUniqueIdBuilder.GetBasketDeviceId(), $"complete_order_cc_{card.CardId}")
+                    .ConfigureTopics(HassTopicKind.JsonAttributes)
+                    .ConfigureBasketDevice()
+                    .ConfigureDiscovery(discovery =>
+                    {
+                        discovery.Name = $"Nemlig order with card {card.CardMask}";
+                        discovery.CommandTopic = $"{_hassConfig.TopicPrefix}/basket/order-cc/{card.CardId}";
+                        //discovery.CommandTemplate = "{}";
+                    })
+                    .ConfigureAliveService();
+
+                ISensorContainer sensor = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), $"complete_order_cc_{card.CardId}");
+
+                sensor.SetAttribute("card_expires", card.CardExpirationInfo);
+                sensor.SetAttribute("card_expire_year", card.CardExpirationYear);
+                sensor.SetAttribute("card_expire_month", card.CardExpirationMonth);
+                sensor.SetAttribute("card_type", card.CardType);
+                sensor.SetAttribute("card_isdefault", card.IsDefault);
+                sensor.SetAttribute("fee_percent", card.FeeInPercent);
+            }
         }
     }
 }
