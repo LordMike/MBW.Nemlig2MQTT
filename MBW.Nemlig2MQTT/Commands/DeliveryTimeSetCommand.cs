@@ -4,31 +4,30 @@ using MBW.HassMQTT.CommonServices.Commands;
 using MBW.Nemlig2MQTT.Service;
 using MQTTnet;
 
-namespace MBW.Nemlig2MQTT.Commands
+namespace MBW.Nemlig2MQTT.Commands;
+
+internal class DeliveryTimeSetCommand : IMqttCommandHandler
 {
-    internal class DeliveryTimeSetCommand : IMqttCommandHandler
+    private readonly NemligDeliveryOptionsMqttService _service;
+    private readonly NemligBasketMqttService _basket;
+
+    public DeliveryTimeSetCommand(NemligDeliveryOptionsMqttService service, NemligBasketMqttService basket)
     {
-        private readonly NemligDeliveryOptionsMqttService _service;
-        private readonly NemligBasketMqttService _basket;
+        _service = service;
+        _basket = basket;
+    }
 
-        public DeliveryTimeSetCommand(NemligDeliveryOptionsMqttService service, NemligBasketMqttService basket)
-        {
-            _service = service;
-            _basket = basket;
-        }
+    public string[] GetFilter()
+    {
+        return new[] { "basket", "delivery_select", "command" };
+    }
 
-        public string[] GetFilter()
-        {
-            return new[] { "basket", "delivery_select", "command" };
-        }
+    public async Task Handle(string[] topicLevels, MqttApplicationMessage message, CancellationToken token = new CancellationToken())
+    {
+        string value = message.ConvertPayloadToString();
 
-        public async Task Handle(string[] topicLevels, MqttApplicationMessage message, CancellationToken token = new CancellationToken())
-        {
-            string value = message.ConvertPayloadToString();
+        await _service.SetValue(value);
 
-            await _service.SetValue(value);
-
-            _basket.ForceSync();
-        }
+        _basket.ForceSync();
     }
 }

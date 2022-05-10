@@ -1,9 +1,8 @@
 ﻿using System;
 
-namespace MBW.Nemlig2MQTT.Configuration
+namespace MBW.Nemlig2MQTT.Configuration;
+
+internal  class ProxyConfiguration
 {
-    internal  class ProxyConfiguration
-    {
-        public Uri Uri { get; set; }
-    }
+    public Uri Uri { get; set; }
 }

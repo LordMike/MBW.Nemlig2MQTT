@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MBW.Client.NemligCom;
@@ -20,168 +18,167 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nito.AsyncEx;
 
-namespace MBW.Nemlig2MQTT.Service
+namespace MBW.Nemlig2MQTT.Service;
+
+internal class NemligBasketMqttService : BackgroundService
 {
-    internal class NemligBasketMqttService : BackgroundService
+    private readonly ILogger<NemligBasketMqttService> _logger;
+    private readonly NemligClient _nemligClient;
+    private readonly DeliveryRenderer _deliveryRenderer;
+    private readonly HassMqttManager _hassMqttManager;
+    private readonly ApiOperationalContainer _apiOperationalContainer;
+    private readonly NemligConfiguration _config;
+    private readonly AsyncAutoResetEvent _syncEvent = new AsyncAutoResetEvent();
+
+    private ISensorContainer _basketBalance;
+    private ISensorContainer _basketReadyToOrder;
+    private ISensorContainer _basketDelivery;
+    private ISensorContainer _basketContents;
+
+    public NemligBasketMqttService(
+        ILogger<NemligBasketMqttService> logger,
+        IOptions<NemligConfiguration> config,
+        NemligClient nemligClient,
+        DeliveryRenderer deliveryRenderer,
+        HassMqttManager hassMqttManager,
+        ApiOperationalContainer apiOperationalContainer)
     {
-        private readonly ILogger<NemligBasketMqttService> _logger;
-        private readonly NemligClient _nemligClient;
-        private readonly DeliveryRenderer _deliveryRenderer;
-        private readonly HassMqttManager _hassMqttManager;
-        private readonly ApiOperationalContainer _apiOperationalContainer;
-        private readonly NemligConfiguration _config;
-        private readonly AsyncAutoResetEvent _syncEvent = new AsyncAutoResetEvent();
+        _logger = logger;
+        _nemligClient = nemligClient;
+        _deliveryRenderer = deliveryRenderer;
+        _hassMqttManager = hassMqttManager;
+        _apiOperationalContainer = apiOperationalContainer;
+        _config = config.Value;
+    }
 
-        private ISensorContainer _basketBalance;
-        private ISensorContainer _basketReadyToOrder;
-        private ISensorContainer _basketDelivery;
-        private ISensorContainer _basketContents;
+    public void ForceSync()
+    {
+        _syncEvent.Set();
+    }
 
-        public NemligBasketMqttService(
-            ILogger<NemligBasketMqttService> logger,
-            IOptions<NemligConfiguration> config,
-            NemligClient nemligClient,
-            DeliveryRenderer deliveryRenderer,
-            HassMqttManager hassMqttManager,
-            ApiOperationalContainer apiOperationalContainer)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        CreateEntities();
+
+        // Update loop
+        while (!stoppingToken.IsCancellationRequested)
         {
-            _logger = logger;
-            _nemligClient = nemligClient;
-            _deliveryRenderer = deliveryRenderer;
-            _hassMqttManager = hassMqttManager;
-            _apiOperationalContainer = apiOperationalContainer;
-            _config = config.Value;
-        }
+            _logger.LogDebug("Beginning update");
 
-        public void ForceSync()
-        {
-            _syncEvent.Set();
-        }
-
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            CreateEntities();
-
-            // Update loop
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
-                _logger.LogDebug("Beginning update");
+                NemligBasket basket = await _nemligClient.GetBasket(stoppingToken);
 
-                try
-                {
-                    NemligBasket basket = await _nemligClient.GetBasket(stoppingToken);
+                Update(basket);
 
-                    Update(basket);
+                // Track API operational status
+                _apiOperationalContainer.MarkOk();
 
-                    // Track API operational status
-                    _apiOperationalContainer.MarkOk();
+                await _hassMqttManager.FlushAll(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // Do nothing
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "An error occurred while performing the update");
 
-                    await _hassMqttManager.FlushAll(stoppingToken);
-                }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-                {
-                    // Do nothing
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "An error occurred while performing the update");
+                // Track API operational status
+                _apiOperationalContainer.MarkError(e.Message);
+            }
 
-                    // Track API operational status
-                    _apiOperationalContainer.MarkError(e.Message);
-                }
+            try
+            {
+                using CancellationTokenSource cts = new CancellationTokenSource(_config.BasketInterval);
+                using CancellationTokenSource combinedCancel = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, stoppingToken);
 
-                try
-                {
-                    using CancellationTokenSource cts = new CancellationTokenSource(_config.BasketInterval);
-                    using CancellationTokenSource combinedCancel = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, stoppingToken);
-
-                    await _syncEvent.WaitAsync(combinedCancel.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                }
+                await _syncEvent.WaitAsync(combinedCancel.Token);
+            }
+            catch (OperationCanceledException)
+            {
             }
         }
+    }
 
-        public void Update(NemligBasket basket)
-        {
-            _basketBalance.SetValue(HassTopicKind.State, basket.TotalPrice);
+    public void Update(NemligBasket basket)
+    {
+        _basketBalance.SetValue(HassTopicKind.State, basket.TotalPrice);
 
-            MqttAttributesTopic attr = _basketBalance.GetAttributesSender();
-            attr.SetAttribute("num_bags", basket.NumberOfBags);
-            attr.SetAttribute("num_deposits", basket.NumberOfDeposits);
-            attr.SetAttribute("num_products", basket.NumberOfProducts);
-            attr.SetAttribute("price_products", basket.TotalProductsPrice);
-            attr.SetAttribute("price_delivery", basket.DeliveryPrice);
-            attr.SetAttribute("price_bags", basket.TotalBagsPrice);
-            attr.SetAttribute("price_deposits", basket.TotalDepositsPrice);
-            attr.SetAttribute("price_nemligaccount", -basket.NemligAccount);
-            attr.SetAttribute("price_ccfee", -basket.CreditCardFee);
+        MqttAttributesTopic attr = _basketBalance.GetAttributesSender();
+        attr.SetAttribute("num_bags", basket.NumberOfBags);
+        attr.SetAttribute("num_deposits", basket.NumberOfDeposits);
+        attr.SetAttribute("num_products", basket.NumberOfProducts);
+        attr.SetAttribute("price_products", basket.TotalProductsPrice);
+        attr.SetAttribute("price_delivery", basket.DeliveryPrice);
+        attr.SetAttribute("price_bags", basket.TotalBagsPrice);
+        attr.SetAttribute("price_deposits", basket.TotalDepositsPrice);
+        attr.SetAttribute("price_nemligaccount", -basket.NemligAccount);
+        attr.SetAttribute("price_ccfee", -basket.CreditCardFee);
 
-            _basketDelivery.SetValue(HassTopicKind.State, basket.FormattedDeliveryTime);
-            attr = _basketDelivery.GetAttributesSender();
-            attr.SetAttribute("delivery", basket.FormattedDeliveryTime);
-            attr.SetAttribute("delivery_price", basket.DeliveryPrice);
-            attr.SetAttribute("delivery_date", basket.DeliveryTimeSlot.Date.ToString("yyyy-MM-dd"));
-            attr.SetAttribute("delivery_time", $"{basket.DeliveryTimeSlot.StartTime:00}:00-{basket.DeliveryTimeSlot.EndTime:00}:00");
+        _basketDelivery.SetValue(HassTopicKind.State, basket.FormattedDeliveryTime);
+        attr = _basketDelivery.GetAttributesSender();
+        attr.SetAttribute("delivery", basket.FormattedDeliveryTime);
+        attr.SetAttribute("delivery_price", basket.DeliveryPrice);
+        attr.SetAttribute("delivery_date", basket.DeliveryTimeSlot.Date.ToString("yyyy-MM-dd"));
+        attr.SetAttribute("delivery_time", $"{basket.DeliveryTimeSlot.StartTime:00}:00-{basket.DeliveryTimeSlot.EndTime:00}:00");
 
-            if (basket.IsMinTotalValid)
-                _basketReadyToOrder.SetValue(HassTopicKind.State, "ready");
-            else
-                _basketReadyToOrder.SetValue(HassTopicKind.State, "not_ready");
+        if (basket.IsMinTotalValid)
+            _basketReadyToOrder.SetValue(HassTopicKind.State, "ready");
+        else
+            _basketReadyToOrder.SetValue(HassTopicKind.State, "not_ready");
 
-            _deliveryRenderer.RenderContents(_basketContents, basket.Lines);
-        }
+        _deliveryRenderer.RenderContents(_basketContents, basket.Lines);
+    }
 
-        private void CreateEntities()
-        {
-            _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "balance")
-                .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
-                .ConfigureBasketDevice()
-                .ConfigureDiscovery(discovery =>
-                {
-                    discovery.Name = "Nemlig basket balance";
-                    discovery.UnitOfMeasurement = "DKK";
-                })
-                .ConfigureAliveService();
+    private void CreateEntities()
+    {
+        _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "balance")
+            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
+            .ConfigureBasketDevice()
+            .ConfigureDiscovery(discovery =>
+            {
+                discovery.Name = "Nemlig basket balance";
+                discovery.UnitOfMeasurement = "DKK";
+            })
+            .ConfigureAliveService();
 
-            _basketBalance = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), "balance");
+        _basketBalance = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), "balance");
 
-            _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "delivery")
-                .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
-                .ConfigureBasketDevice()
-                .ConfigureDiscovery(discovery =>
-                {
-                    discovery.Name = "Nemlig basket delivery";
-                })
-                .ConfigureAliveService();
+        _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "delivery")
+            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
+            .ConfigureBasketDevice()
+            .ConfigureDiscovery(discovery =>
+            {
+                discovery.Name = "Nemlig basket delivery";
+            })
+            .ConfigureAliveService();
 
-            _basketDelivery = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), "delivery");
+        _basketDelivery = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), "delivery");
 
-            _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "contents")
-                .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
-                .ConfigureBasketDevice()
-                .ConfigureDiscovery(discovery =>
-                {
-                    discovery.Name = "Nemlig basket";
-                })
-                .ConfigureAliveService();
+        _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "contents")
+            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
+            .ConfigureBasketDevice()
+            .ConfigureDiscovery(discovery =>
+            {
+                discovery.Name = "Nemlig basket";
+            })
+            .ConfigureAliveService();
 
-            _basketContents = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), "contents");
+        _basketContents = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), "contents");
 
-            _hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "ready")
-                .ConfigureTopics(HassTopicKind.State)
-                .ConfigureBasketDevice()
-                .ConfigureDiscovery(discovery =>
-                {
-                    discovery.Name = "Nemlig basket ready to order";
-                    discovery.DeviceClass = HassBinarySensorDeviceClass.Problem;
-                    discovery.PayloadOn = "not_ready";
-                    discovery.PayloadOff = "ready";
-                })
-                .ConfigureAliveService();
+        _hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "ready")
+            .ConfigureTopics(HassTopicKind.State)
+            .ConfigureBasketDevice()
+            .ConfigureDiscovery(discovery =>
+            {
+                discovery.Name = "Nemlig basket ready to order";
+                discovery.DeviceClass = HassBinarySensorDeviceClass.Problem;
+                discovery.PayloadOn = "not_ready";
+                discovery.PayloadOff = "ready";
+            })
+            .ConfigureAliveService();
 
-            _basketReadyToOrder = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), "ready");
-        }
+        _basketReadyToOrder = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), "ready");
     }
 }

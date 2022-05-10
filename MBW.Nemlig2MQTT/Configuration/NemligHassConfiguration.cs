@@ -1,7 +1,6 @@
-﻿namespace MBW.Nemlig2MQTT.Configuration
+﻿namespace MBW.Nemlig2MQTT.Configuration;
+
+internal class NemligHassConfiguration
 {
-    internal class NemligHassConfiguration
-    {
-        public bool EnableHASSDiscovery { get; set; } = true;
-    }
+    public bool EnableHASSDiscovery { get; set; } = true;
 }

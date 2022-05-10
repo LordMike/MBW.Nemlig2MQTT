@@ -1,9 +1,8 @@
-﻿namespace MBW.Nemlig2MQTT.Enums
+﻿namespace MBW.Nemlig2MQTT.Enums;
+
+public enum NemligDeliveryOnTheWay
 {
-    public enum NemligDeliveryOnTheWay
-    {
-        Unknown,
-        Idle,
-        Delivering
-    }
+    Unknown,
+    Idle,
+    Delivering
 }
