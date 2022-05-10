@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using MBW.Client.NemligCom.Objects.Basket;
@@ -12,15 +12,10 @@ namespace MBW.Nemlig2MQTT.Service.Helpers;
 
 public class DeliveryRenderer
 {
-    internal record LineItem(int Id, string Name, string Description, int Quantity, float Price) : IComparable<LineItem>
-    {
-        public int CompareTo(LineItem other) => Id.CompareTo(other.Id);
-    }
-
     public string Render(Dayhour dayHour)
     {
         string type = dayHour.Type == NemligDeliveryType.Attended ? "pers." : "fleks.";
-        return $"{dayHour.Date:ddd dd'/'MM} kl.{dayHour.StartHour:00}-{dayHour.EndHour:00}, {dayHour.DeliveryPrice:#0,0}DKK ({type})";
+        return $"{dayHour.Date:ddd dd'/'MM} kl.{dayHour.StartHour:00}-{dayHour.EndHour:00}, {dayHour.DeliveryPrice:#0,0} DKK ({type})";
     }
 
     public Dayhour FindByString(IEnumerable<Dayhour> source, string needle)
@@ -47,5 +42,38 @@ public class DeliveryRenderer
 
         //attr.SetAttribute($"line_{i}_image", line.PrimaryImage);
         //attr.SetAttribute($"line_{i}_url", new Uri(_nemligClient.NemligUrl, line.Url).ToString());
+    }
+
+    class LineItem : IComparable<LineItem>
+    {
+        public LineItem(int id, string name, string description, int quantity, float price)
+        {
+            Id = id;
+            Name = name;
+            Description = description;
+            Quantity = quantity;
+            Price = price;
+        }
+
+        public int Id { get; }
+        public string Name { get; }
+        public string Description { get; }
+        public int Quantity { get; }
+        public float Price { get; }
+
+        public int CompareTo(LineItem other)
+        {
+            if (ReferenceEquals(this, other)) return 0;
+            if (ReferenceEquals(null, other)) return 1;
+            int idComparison = Id.CompareTo(other.Id);
+            if (idComparison != 0) return idComparison;
+            int nameComparison = string.Compare(Name, other.Name, StringComparison.Ordinal);
+            if (nameComparison != 0) return nameComparison;
+            int descriptionComparison = string.Compare(Description, other.Description, StringComparison.Ordinal);
+            if (descriptionComparison != 0) return descriptionComparison;
+            int quantityComparison = Quantity.CompareTo(other.Quantity);
+            if (quantityComparison != 0) return quantityComparison;
+            return Price.CompareTo(other.Price);
+        }
     }
 }

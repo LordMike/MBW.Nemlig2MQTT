@@ -1,16 +1,13 @@
-﻿using MBW.Client.NemligCom.Objects.Delivery;
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
+using MBW.Client.NemligCom.Objects.Delivery;
 
 namespace MBW.Nemlig2MQTT.Configuration;
 
-internal class NemligDeliveryConfiguration
+internal class NemligDeliveryConfig
 {
     [Range(1, 7)]
     public int DaysToCheck { get; set; } = 4;
-
-    [Range(typeof(TimeSpan), "00:01:00", "15.00:00:00")]
-    public TimeSpan CheckInterval { get; set; } = TimeSpan.FromMinutes(15);
 
     [Range(4, 672)]
     public int PrioritizeMaxHours { get; set; } = 48;

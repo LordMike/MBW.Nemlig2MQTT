@@ -13,6 +13,7 @@ using MBW.Nemlig2MQTT.Configuration;
 using MBW.Nemlig2MQTT.Helpers;
 using MBW.Nemlig2MQTT.Service;
 using MBW.Nemlig2MQTT.Service.Helpers;
+using MBW.Nemlig2MQTT.Service.Scrapers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -78,8 +79,6 @@ internal class Program
         services
             .AddMqttCommandService()
             .AddMqttCommandHandler<BasketSyncCommand>()
-            .AddMqttCommandHandler<BasketAddCommand>()
-            .AddMqttCommandHandler<BasketClearCommand>()
             .AddMqttCommandHandler<BasketOrderCcCommand>()
             .AddMqttCommandHandler<DeliveryTimeSetCommand>();
 
@@ -87,8 +86,7 @@ internal class Program
             .Configure<NemligHassConfiguration>(context.Configuration.GetSection("HASS"))
             .Configure<HassConfiguration>(context.Configuration.GetSection("HASS"))
             .Configure<NemligConfiguration>(context.Configuration.GetSection("Nemlig"))
-            .Configure<NemligDeliveryConfiguration>(context.Configuration.GetSection("Nemlig"))
-            .PostConfigure<NemligDeliveryConfiguration>(x => x.AllowDeliveryTypes ??= new[] { NemligDeliveryType.Attended, NemligDeliveryType.Unattended })
+            .PostConfigure<NemligConfiguration>(x => x.DeliveryConfig.AllowDeliveryTypes ??= new[] { NemligDeliveryType.Attended, NemligDeliveryType.Unattended })
             .Configure<ProxyConfiguration>(context.Configuration.GetSection("Proxy"))
             .AddSingleton(x => new HassMqttTopicBuilder(x.GetOptions<HassConfiguration>()))
             .AddSingleton<CookieContainer>()
@@ -127,8 +125,11 @@ internal class Program
         services
             .AddSingleton<DeliveryRenderer>()
             .AddSingletonAndHostedService<ApiOperationalContainer>()
-            .AddSingletonAndHostedService<NemligBasketMqttService>()
-            .AddSingletonAndHostedService<NemligDeliveryOptionsMqttService>()
-            .AddSingletonAndHostedService<NemligNextDeliveryMqttService>();
+            .AddSingletonAndHostedService<NemligMqttService>()
+            .AddSingleton<ScraperManager>()
+            .AddScraper<NemligBasketContentsScraper>()
+            .AddScraper<NemligCreditCardsScraper>()
+            .AddScraper<NemligDeliveryOptionsScraper>()
+            .AddScraper<NemligNextDeliveryScraper>();
     }
 }
