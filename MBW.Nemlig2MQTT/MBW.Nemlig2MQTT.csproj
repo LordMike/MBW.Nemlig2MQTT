@@ -24,6 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\MBW.Client.NemligCom\MBW.Client.NemligCom.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -31,10 +35,6 @@
       <DependentUpon>appsettings.json</DependentUpon>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\MBW.Client.NemligCom\src\MBW.Client.NemligCom\MBW.Client.NemligCom.csproj" />
   </ItemGroup>
 
 </Project>

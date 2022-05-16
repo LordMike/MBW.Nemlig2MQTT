@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30011.22
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32328.378
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{120041D7-3CC3-44EC-92DA-FBBB6970DCF2}"
 	ProjectSection(SolutionItems) = preProject
@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MBW.Nemlig2MQTT", "MBW.Nemlig2MQTT\MBW.Nemlig2MQTT.csproj", "{47B82657-479C-4C75-8EA7-553175ADFD91}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MBW.Client.NemligCom", "..\MBW.Client.NemligCom\src\MBW.Client.NemligCom\MBW.Client.NemligCom.csproj", "{BB305F11-5123-42BB-BAA5-5B518A3F4B44}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MBW.Client.NemligCom", "MBW.Client.NemligCom\MBW.Client.NemligCom.csproj", "{DA577C64-1106-4E70-8C9D-ED880E1E977C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -37,18 +37,18 @@ Global
 		{47B82657-479C-4C75-8EA7-553175ADFD91}.Release|x64.Build.0 = Release|Any CPU
 		{47B82657-479C-4C75-8EA7-553175ADFD91}.Release|x86.ActiveCfg = Release|Any CPU
 		{47B82657-479C-4C75-8EA7-553175ADFD91}.Release|x86.Build.0 = Release|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Debug|x64.Build.0 = Debug|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Debug|x86.Build.0 = Debug|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Release|x64.ActiveCfg = Release|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Release|x64.Build.0 = Release|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Release|x86.ActiveCfg = Release|Any CPU
-		{BB305F11-5123-42BB-BAA5-5B518A3F4B44}.Release|x86.Build.0 = Release|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Debug|x64.Build.0 = Debug|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Debug|x86.Build.0 = Debug|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Release|x64.ActiveCfg = Release|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Release|x64.Build.0 = Release|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Release|x86.ActiveCfg = Release|Any CPU
+		{DA577C64-1106-4E70-8C9D-ED880E1E977C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
