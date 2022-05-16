@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using MBW.Client.NemligCom;
 using MBW.Client.NemligCom.Objects.Basket;
 using MBW.HassMQTT.CommonServices.Commands;
+using MBW.Nemlig2MQTT.HASS;
 using MBW.Nemlig2MQTT.Service.Scrapers;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
@@ -24,7 +25,7 @@ internal class BasketSyncCommand : IMqttCommandHandler
 
     public string[] GetFilter()
     {
-        return new[] { "basket", "sync" };
+        return new[] { HassUniqueIdBuilder.GetBasketDeviceId(), "force_sync", "command" };
     }
 
     public async Task Handle(string[] topicLevels, MqttApplicationMessage message, CancellationToken token = default)

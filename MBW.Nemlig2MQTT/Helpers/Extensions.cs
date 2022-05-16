@@ -50,4 +50,14 @@ internal static class Extensions
             device.Identifiers.Add(HassUniqueIdBuilder.GetNextDeliveryDeviceId());
         });
     }
+
+    public static IDiscoveryDocumentBuilder<T> ConfigureSystemDevice<T>(this IDiscoveryDocumentBuilder<T> builder) where T : IHassDiscoveryDocument
+    {
+        return builder.ConfigureDevice(device =>
+        {
+            device.Name = "Nemlig2MQTT";
+            device.Identifiers.Add(HassUniqueIdBuilder.GetSystemDeviceId());
+            device.SwVersion = typeof(Program).Assembly.GetName().Version.ToString(3);
+        });
+    }
 }

@@ -4,6 +4,7 @@ using MBW.Client.NemligCom;
 using MBW.Client.NemligCom.Objects.Basket;
 using MBW.HassMQTT.CommonServices.Commands;
 using MBW.Nemlig2MQTT.Configuration;
+using MBW.Nemlig2MQTT.HASS;
 using MBW.Nemlig2MQTT.Service.Scrapers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -29,7 +30,7 @@ internal class BasketOrderCcCommand : IMqttCommandHandler
 
     public string[] GetFilter()
     {
-        return new[] { "basket", "order-cc", null };
+        return new[] { HassUniqueIdBuilder.GetBasketDeviceId(), "order-cc", null };
     }
 
     public async Task Handle(string[] topicLevels, MqttApplicationMessage message, CancellationToken token = default)

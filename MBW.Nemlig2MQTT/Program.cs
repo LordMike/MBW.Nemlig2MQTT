@@ -80,6 +80,7 @@ internal class Program
             .AddMqttCommandService()
             .AddMqttCommandHandler<BasketSyncCommand>()
             .AddMqttCommandHandler<BasketOrderCcCommand>()
+            .AddMqttCommandHandler<FullSyncCommand>()
             .AddMqttCommandHandler<DeliveryTimeSetCommand>();
 
         services

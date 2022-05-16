@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MBW.Client.NemligCom;
@@ -7,7 +7,13 @@ using MBW.Client.NemligCom.Objects.Checkout;
 using MBW.Client.NemligCom.Objects.Delivery;
 using MBW.Client.NemligCom.Objects.Order;
 using MBW.HassMQTT;
+using MBW.HassMQTT.CommonServices.AliveAndWill;
+using MBW.HassMQTT.DiscoveryModels.Enum;
+using MBW.HassMQTT.DiscoveryModels.Models;
+using MBW.HassMQTT.Extensions;
 using MBW.Nemlig2MQTT.Configuration;
+using MBW.Nemlig2MQTT.HASS;
+using MBW.Nemlig2MQTT.Helpers;
 using MBW.Nemlig2MQTT.Service.Scrapers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -50,6 +56,19 @@ internal class NemligMqttService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Prepare force sync button
+        {
+            _hassMqttManager.ConfigureSensor<MqttButton>(HassUniqueIdBuilder.GetSystemDeviceId(), "force_sync")
+                .ConfigureSystemDevice()
+                .ConfigureDiscovery(discovery =>
+                {
+                    discovery.Name = "Nemlig force sync all";
+                })
+                .ConfigureAliveService()
+                .ConfigureTopics(HassTopicKind.Command)
+                .GetSensor();
+        }
+
         // Update once
         {
             _logger.LogDebug("Updating credit cards, once");

@@ -8,6 +8,7 @@ using MBW.HassMQTT.DiscoveryModels.Models;
 using MBW.HassMQTT.Extensions;
 using MBW.HassMQTT.Interfaces;
 using MBW.Nemlig2MQTT.HASS;
+using MBW.Nemlig2MQTT.Helpers;
 using Microsoft.Extensions.Hosting;
 
 namespace MBW.Nemlig2MQTT.Service;
@@ -54,14 +55,9 @@ internal class ApiOperationalContainer : BackgroundService
 
     private ISensorContainer CreateSystemEntities()
     {
-        _hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetSystemDeviceId(), "api_operational")
+        return _hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetSystemDeviceId(), "api_operational")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
-            .ConfigureDevice(device =>
-            {
-                device.Name = "Nemlig2MQTT";
-                device.Identifiers.Add(HassUniqueIdBuilder.GetSystemDeviceId());
-                device.SwVersion = typeof(Program).Assembly.GetName().Version.ToString(3);
-            })
+            .ConfigureSystemDevice()
             .ConfigureDiscovery(discovery =>
             {
                 discovery.Name = "Nemlig2MQTT API Operational";
@@ -70,9 +66,8 @@ internal class ApiOperationalContainer : BackgroundService
                 discovery.PayloadOn = ProblemMessage;
                 discovery.PayloadOff = OkMessage;
             })
-            .ConfigureAliveService();
-
-        return _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetSystemDeviceId(), "api_operational");
+            .ConfigureAliveService()
+            .GetSensor();
     }
 
 }

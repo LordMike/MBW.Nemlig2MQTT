@@ -72,6 +72,18 @@ internal class NemligBasketContentsScraper : IResponseScraper
             })
             .ConfigureAliveService()
             .GetSensor();
+
+
+        // Create sync button
+        _hassMqttManager.ConfigureSensor<MqttButton>(HassUniqueIdBuilder.GetBasketDeviceId(), "force_sync")
+            .ConfigureBasketDevice()
+            .ConfigureDiscovery(discovery =>
+            {
+                discovery.Name = "Nemlig force sync basket";
+            })
+            .ConfigureAliveService()
+            .ConfigureTopics(HassTopicKind.Command)
+            .GetSensor();
     }
 
     public Task Scrape(object response, CancellationToken token = default)
