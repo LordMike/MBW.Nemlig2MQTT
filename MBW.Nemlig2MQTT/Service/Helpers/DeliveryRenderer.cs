@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using MBW.Client.NemligCom.Objects.Basket;
@@ -27,18 +27,21 @@ public class DeliveryRenderer
     {
         IList<INemligLine> productsList = products as IList<INemligLine> ?? products.ToList();
 
-        string[] lines = productsList.Select(s => $"{s.Quantity}x {s.Name} ({s.Price:#0.00} DKK)").ToArray();
-        sensor.SetValue(HassTopicKind.State, lines);
+        string str = $"{products.Sum(s => s.Quantity)} stk";
+        sensor.SetValue(HassTopicKind.State, str);
 
         MqttAttributesTopic attr = sensor.GetAttributesSender();
 
-        attr.SetAttribute("lines", productsList.Select(s => new LineItem(
-            s.Id,
-            s.Name,
-            s.Description,
-            s.Quantity,
-            s.Price
-        )));
+        string[] lines = productsList.Select(s => $"{s.Quantity}x {s.Name} ({s.Price:#0.00} DKK)").ToArray();
+        attr.SetAttribute("contents", lines);
+
+        //attr.SetAttribute("lines", productsList.Select(s => new LineItem(
+        //    s.Id,
+        //    s.Name,
+        //    s.Description,
+        //    s.Quantity,
+        //    s.Price
+        //)));
 
         //attr.SetAttribute($"line_{i}_image", line.PrimaryImage);
         //attr.SetAttribute($"line_{i}_url", new Uri(_nemligClient.NemligUrl, line.Url).ToString());

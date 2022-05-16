@@ -42,7 +42,7 @@ internal class NemligCreditCardsScraper : IResponseScraper
 
             _logger.LogInformation("Creating button to order with credit card {CardId}, mask: {CardMask}. Default: {IsDefault}", card.CardId, card.CardMask, card.IsDefault);
 
-            _hassMqttManager.ConfigureSensor<MqttButton>(HassUniqueIdBuilder.GetBasketDeviceId(), $"complete_order_cc_{card.CardId}")
+            ISensorContainer sensor = _hassMqttManager.ConfigureSensor<MqttButton>(HassUniqueIdBuilder.GetBasketDeviceId(), $"complete_order_cc_{card.CardId}")
                 .ConfigureTopics(HassTopicKind.JsonAttributes)
                 .ConfigureBasketDevice()
                 .ConfigureDiscovery(discovery =>
@@ -51,9 +51,8 @@ internal class NemligCreditCardsScraper : IResponseScraper
                     discovery.CommandTopic = $"{_config.TopicPrefix}/basket/order-cc/{card.CardId}";
                     //discovery.CommandTemplate = "{}";
                 })
-                .ConfigureAliveService();
-
-            ISensorContainer sensor = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), $"complete_order_cc_{card.CardId}");
+                .ConfigureAliveService()
+                .GetSensor();
 
             sensor.SetAttribute("card_expires", card.CardExpirationInfo);
             sensor.SetAttribute("card_expire_year", card.CardExpirationYear);

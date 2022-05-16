@@ -24,7 +24,6 @@ namespace MBW.Nemlig2MQTT.Service.Scrapers;
 
 internal class NemligDeliveryOptionsScraper : IResponseScraper
 {
-    [DebuggerDisplay("{Score}: {DeliveryTime.Date:yyyy-MM-dd-HH}, {DeliveryTime.DeliveryPrice}DKK")]
     record struct DateOption(float Score, Dayhour DeliveryTime);
 
     private readonly NemligConfiguration _config;
@@ -63,7 +62,7 @@ internal class NemligDeliveryOptionsScraper : IResponseScraper
             })
             .ConfigureAliveService();
 
-        _deliverySelect = _hassMqttManager.GetSensor(HassUniqueIdBuilder.GetBasketDeviceId(), "delivery_select");
+        _deliverySelect = _deliverySelectConfig.GetSensor();
     }
 
     public async Task SetValue(string chosenValue, CancellationToken token = default)

@@ -14,6 +14,6 @@ internal static class HassUniqueIdBuilder
 
     public static string GetNextDeliveryDeviceId()
     {
-        return "nxetdelivery";
+        return "nextdelivery";
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MBW.Client.NemligCom;
@@ -95,6 +95,7 @@ internal class NemligMqttService : BackgroundService
                 _apiOperationalContainer.MarkError(e.Message);
             }
 
+            // Wait for next event, or the check interval
             try
             {
                 using CancellationTokenSource cts = new CancellationTokenSource(_config.CheckInterval);
