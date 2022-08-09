@@ -147,6 +147,8 @@ internal class NemligNextDeliveryScraper : IResponseScraper
     private void Update(OrderHistory orderDetails)
     {
         _nextDeliveryTime.SetValue(HassTopicKind.State, orderDetails.DeliveryTime.Start);
+        _nextDeliveryTime.SetAttribute("start", orderDetails.DeliveryTime.Start);
+        _nextDeliveryTime.SetAttribute("end", orderDetails.DeliveryTime.End);
         _deliveryRenderer.RenderContents(_nextDeliveryContents, orderDetails.Lines);
         _nextDeliveryBoxes.SetValue(HassTopicKind.State, orderDetails.NumberOfPacks);
         _nextDeliveryEditDeadline.SetValue(HassTopicKind.State, orderDetails.DeliveryDeadlineDateTime);
