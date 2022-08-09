@@ -136,10 +136,10 @@ internal class NemligNextDeliveryScraper : IResponseScraper
 
     private void Clear()
     {
-        _nextDeliveryTime.SetValue(HassTopicKind.State, "");
+        _nextDeliveryTime.SetValue(HassTopicKind.State, null);
         _nextDeliveryContents.SetValue(HassTopicKind.State, "");
-        _nextDeliveryBoxes.SetValue(HassTopicKind.State, "");
-        _nextDeliveryEditDeadline.SetValue(HassTopicKind.State, "");
+        _nextDeliveryBoxes.SetValue(HassTopicKind.State, 0);
+        _nextDeliveryEditDeadline.SetValue(HassTopicKind.State, null);
         _nextDeliveryOnTheWay.SetValue(HassTopicKind.State, NemligDeliveryOnTheWay.Idle.ToString());
         _nextDeliveryEditDeadlinePassed.SetValue(HassTopicKind.State, "off");
     }
