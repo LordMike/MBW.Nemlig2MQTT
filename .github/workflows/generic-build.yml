@@ -10,11 +10,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setup .NET Core
+
+    - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 3.1.101
-    - name: Install dependencies
+        dotnet-version: 7.0.x
+
+    - name: Restore dependencies
       run: dotnet restore
+
     - name: Build
       run: dotnet build --configuration Release --no-restore
+
+    - name: Test
+      run: "[ -f .ci-skip-tests ] && echo 'Skipping tests' || dotnet test --no-build --configuration Release --verbosity normal"
