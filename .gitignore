@@ -1,6 +1,13 @@
+.vs/
+.idea/
 bin/
 obj/
-build/
-.vs/
+Build/
 
-appsettings.local.json
+# Files for local dev
+*.user
+*.local.json
+
+# Verify
+# https://github.com/VerifyTests/Verify#received-and-verified
+*.received.*
