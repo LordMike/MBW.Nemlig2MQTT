@@ -1,5 +1,5 @@
 # https://hub.docker.com/_/microsoft-dotnet-core
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
 
 COPY . .
@@ -7,7 +7,7 @@ WORKDIR "/src/MBW.Nemlig2MQTT/"
 RUN dotnet publish -c release -o /app
 
 # Final
-FROM mcr.microsoft.com/dotnet/runtime:6.0-alpine-arm32v7
+FROM mcr.microsoft.com/dotnet/runtime:7.0-alpine-arm32v7
 
 RUN apk --no-cache add tzdata
 
