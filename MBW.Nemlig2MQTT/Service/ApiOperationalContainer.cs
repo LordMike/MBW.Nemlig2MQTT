@@ -60,7 +60,7 @@ internal class ApiOperationalContainer : BackgroundService
             .ConfigureSystemDevice()
             .ConfigureDiscovery(discovery =>
             {
-                discovery.Name = "Nemlig2MQTT API Operational";
+                discovery.Name = "API Operational";
                 discovery.DeviceClass = HassBinarySensorDeviceClass.Problem;
 
                 discovery.PayloadOn = ProblemMessage;
