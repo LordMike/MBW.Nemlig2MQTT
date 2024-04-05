@@ -29,13 +29,11 @@ jobs:
       #  run: git fetch --depth=1 origin '+refs/tags/*:refs/tags/*'
 
       - name: Get Previous Tag
-        id: previoustag
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           echo "PREV_TAG=$PREV_TAG" >> $GITHUB_ENV
       
       - name: Generate Release Notes
-        id: generate_notes
         run: |
           COMPARE_LINK="https://github.com/${{ github.repository }}/compare/${{ env.PREV_TAG }}...${{ github.ref_name }}"
           
@@ -46,7 +44,6 @@ jobs:
           git log --pretty=format:"- %h: %s" ${{ env.PREV_TAG }}...${{ github.ref_name }} >> release.md
 
       - name: Create Release
-        id: create_release
         uses: ncipollo/release-action@v1
         with:
           bodyFile: release.md
