@@ -321,6 +321,19 @@ public class NemligClient
         return response;
     }
 
+    public async Task<LatestOrderHistory> GetLatestOrderHistory(CancellationToken token = default)
+    {
+        // https://www.nemlig.com/webapi/order/GetBasicOrderHistory?skip=10&take=10
+        await _requestSigner.LoginIfNeeded(this, token);
+
+        using HttpClient httpClient = _httpClientProducer.CreateClient();
+        using HttpResponseMessage resp = await httpClient.GetAsync("/webapi/order/GetLatestOrderHistory", HttpCompletionOption.ResponseContentRead, token);
+
+        LatestOrderHistory response = await resp.Content.ReadAsJson<LatestOrderHistory>(token);
+
+        return response;
+    }
+
     public async Task<OrderHistory> GetOrderHistory(int orderId, CancellationToken token = default)
     {
         await _requestSigner.LoginIfNeeded(this, token);

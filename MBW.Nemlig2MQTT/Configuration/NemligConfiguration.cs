@@ -13,4 +13,9 @@ internal class NemligConfiguration
     public TimeSpan CheckInterval { get; set; } = TimeSpan.FromMinutes(15);
 
     public NemligDeliveryConfig DeliveryConfig { get; set; } = new NemligDeliveryConfig();
+
+    public bool EnableNextDelivery { get; set; } = true;
+    public bool EnableDeliveryOptions { get; set; } = true;
+    public bool EnableBasket { get; set; } = true;
+    public bool EnableBuyBasket { get; set; } = true;
 }

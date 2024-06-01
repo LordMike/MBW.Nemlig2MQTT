@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MBW.Client.NemligCom;
@@ -25,12 +23,14 @@ internal class NemligNextDeliveryScraper : IResponseScraper
     private readonly HassMqttManager _hassMqttManager;
     private readonly DeliveryRenderer _deliveryRenderer;
 
+    private int? _latestOrderId;
     private readonly ISensorContainer _nextDeliveryTime;
     private readonly ISensorContainer _nextDeliveryContents;
     private readonly ISensorContainer _nextDeliveryBoxes;
     private readonly ISensorContainer _nextDeliveryEditDeadline;
     private readonly ISensorContainer _nextDeliveryOnTheWay;
     private readonly ISensorContainer _nextDeliveryEditDeadlinePassed;
+    private readonly ISensorContainer _nextDeliveryTimeEstimate;
 
     public NemligNextDeliveryScraper(
         ILogger<NemligNextDeliveryScraper> logger,
@@ -40,7 +40,7 @@ internal class NemligNextDeliveryScraper : IResponseScraper
     {
         _logger = logger;
         _nemligClient = nemligClient;
-        _deliveryRenderer=deliveryRenderer;
+        _deliveryRenderer = deliveryRenderer;
         _hassMqttManager = hassMqttManager;
 
         _nextDeliveryTime = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "timestamp")
@@ -54,23 +54,28 @@ internal class NemligNextDeliveryScraper : IResponseScraper
             .ConfigureAliveService()
             .GetSensor();
 
-        _nextDeliveryBoxes = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "boxcount")
+        _nextDeliveryTimeEstimate = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "estimate")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureNextDeliveryDevice()
             .ConfigureDiscovery(discovery =>
             {
-                discovery.Name = "Delivery boxes count";
+                discovery.Name = "Next delivery estimate";
+                discovery.DeviceClass = HassSensorDeviceClass.Timestamp;
             })
+            .ConfigureAliveService()
+            .GetSensor();
+
+        _nextDeliveryBoxes = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "boxcount")
+            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
+            .ConfigureNextDeliveryDevice()
+            .ConfigureDiscovery(discovery => { discovery.Name = "Delivery boxes count"; })
             .ConfigureAliveService()
             .GetSensor();
 
         _nextDeliveryContents = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "contents")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureNextDeliveryDevice()
-            .ConfigureDiscovery(discovery =>
-            {
-                discovery.Name = "Delivery contents";
-            })
+            .ConfigureDiscovery(discovery => { discovery.Name = "Delivery contents"; })
             .ConfigureAliveService()
             .GetSensor();
 
@@ -112,30 +117,23 @@ internal class NemligNextDeliveryScraper : IResponseScraper
 
     public async Task Scrape(object response, CancellationToken token = default)
     {
-        if (response is not BasicOrderHistory orderHistory)
-            return;
-
-        Order nextDeliveryOrder = orderHistory.Orders
-            .Where(s => s.Status is OrderStatus.Bestilt or OrderStatus.Ekspederes || s.IsDeliveryOnWay)
-            .MinBy(s => s.DeliveryTime.Start);
-
-        if (nextDeliveryOrder != null)
-        {
-            OrderHistory orderDetails = await _nemligClient.GetOrderHistory(nextDeliveryOrder.Id, token);
-
-            _logger.LogInformation("Next order {OrderId} is at {DeliveryTime}", nextDeliveryOrder.Id, nextDeliveryOrder.DeliveryTime.Start);
-
-            Update(orderDetails);
-        }
-        else
+        if (response is not LatestOrderHistory { Order: not null } latestOrderHistory ||
+            latestOrderHistory.Order.Status is not (OrderStatus.Bestilt or OrderStatus.Ekspederes) && !latestOrderHistory.Order.IsDeliveryOnWay)
         {
             // No next order
             Clear();
+            return;
         }
+
+        _logger.LogInformation("Next order {OrderId} is at {DeliveryTime}", latestOrderHistory.Order.Id, latestOrderHistory.Order.DeliveryTime.Start);
+
+        await Update(latestOrderHistory.Order, token);
     }
 
     private void Clear()
     {
+        _latestOrderId = null;
+        _nextDeliveryTimeEstimate.SetValue(HassTopicKind.State, null);
         _nextDeliveryTime.SetValue(HassTopicKind.State, null);
         _nextDeliveryContents.SetValue(HassTopicKind.State, "");
         _nextDeliveryBoxes.SetValue(HassTopicKind.State, 0);
@@ -144,21 +142,26 @@ internal class NemligNextDeliveryScraper : IResponseScraper
         _nextDeliveryEditDeadlinePassed.SetValue(HassTopicKind.State, "off");
     }
 
-    private void Update(OrderHistory orderDetails)
+    private async Task Update(LatestOrderHistoryOrder order, CancellationToken token)
     {
-        _nextDeliveryTime.SetValue(HassTopicKind.State, orderDetails.DeliveryTime.Start);
-        _nextDeliveryTime.SetAttribute("start", orderDetails.DeliveryTime.Start);
-        _nextDeliveryTime.SetAttribute("end", orderDetails.DeliveryTime.End);
-        _deliveryRenderer.RenderContents(_nextDeliveryContents, orderDetails.Lines);
-        _nextDeliveryBoxes.SetValue(HassTopicKind.State, orderDetails.NumberOfPacks);
-        _nextDeliveryEditDeadline.SetValue(HassTopicKind.State, orderDetails.DeliveryDeadlineDateTime);
+        if (order.Id != _latestOrderId)
+        {
+            // Update order details
+            // This does not change often, so we fetch it once per order
+            OrderHistory orderDetails = await _nemligClient.GetOrderHistory(order.Id, token);
 
-        _nextDeliveryOnTheWay.SetValue(HassTopicKind.State, (orderDetails.IsDeliveryOnWay ? NemligDeliveryOnTheWay.Delivering : NemligDeliveryOnTheWay.Idle).ToString());
+            _deliveryRenderer.RenderContents(_nextDeliveryContents, orderDetails.Lines);
+            _nextDeliveryBoxes.SetValue(HassTopicKind.State, orderDetails.NumberOfPacks);
 
-        if (orderDetails.DeliveryDeadlineDateTimeOffset > DateTimeOffset.UtcNow)
-            // Not passed
-            _nextDeliveryEditDeadlinePassed.SetValue(HassTopicKind.State, "off");
-        else
-            _nextDeliveryEditDeadlinePassed.SetValue(HassTopicKind.State, "on");
+            _latestOrderId = order.Id;
+        }
+
+        _nextDeliveryTimeEstimate.SetValue(HassTopicKind.State, order.EstimatedArrivalTime);
+        _nextDeliveryTime.SetValue(HassTopicKind.State, order.DeliveryTime.Start);
+        _nextDeliveryTime.SetAttribute("start", order.DeliveryTime.Start);
+        _nextDeliveryTime.SetAttribute("end", order.DeliveryTime.End);
+        _nextDeliveryEditDeadline.SetValue(HassTopicKind.State, order.DeliveryDeadlineDateTime);
+        _nextDeliveryOnTheWay.SetValue(HassTopicKind.State, order.IsDeliveryOnWay || order.Status == OrderStatus.Ekspederes ? nameof(NemligDeliveryOnTheWay.Delivering) : nameof(NemligDeliveryOnTheWay.Idle));
+        _nextDeliveryEditDeadlinePassed.SetValue(HassTopicKind.State, order.IsDeadlinePassed ? "on" : "off");
     }
 }

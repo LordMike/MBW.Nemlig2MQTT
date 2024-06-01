@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -128,9 +129,26 @@ internal class Program
             .AddSingletonAndHostedService<ApiOperationalContainer>()
             .AddSingletonAndHostedService<NemligMqttService>()
             .AddSingleton<ScraperManager>()
-            .AddScraper<NemligBasketContentsScraper>()
-            .AddScraper<NemligCreditCardsScraper>()
-            .AddScraper<NemligDeliveryOptionsScraper>()
-            .AddScraper<NemligNextDeliveryScraper>();
+            .AddSingleton<NemligDeliveryOptionsScraper>()
+            .AddSingleton<IEnumerable<IResponseScraper>>(provider =>
+            {
+                List<IResponseScraper> res = new List<IResponseScraper>();
+                NemligConfiguration config = provider.GetOptions<NemligConfiguration>();
+
+                if (config.EnableBasket)
+                    res.Add(ActivatorUtilities.CreateInstance<NemligBasketContentsScraper>(provider));
+
+                if (config.EnableDeliveryOptions)
+                    // This is special, needs to be invoked by command also
+                    res.Add(provider.GetRequiredService<NemligDeliveryOptionsScraper>());
+
+                if (config.EnableNextDelivery)
+                    res.Add(ActivatorUtilities.CreateInstance<NemligNextDeliveryScraper>(provider));
+
+                if (config.EnableBuyBasket)
+                    res.Add(ActivatorUtilities.CreateInstance<NemligCreditCardsScraper>(provider));
+
+                return res;
+            });
     }
 }

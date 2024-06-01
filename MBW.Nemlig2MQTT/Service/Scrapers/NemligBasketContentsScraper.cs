@@ -39,28 +39,21 @@ internal class NemligBasketContentsScraper : IResponseScraper
             .ConfigureAliveService()
             .GetSensor();
 
-
         _basketDelivery = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "delivery")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureBasketDevice()
-            .ConfigureDiscovery(discovery =>
-            {
-                discovery.Name = "Nemlig basket delivery";
-            })
+            .ConfigureDiscovery(discovery => { discovery.Name = "Nemlig basket delivery"; })
             .ConfigureAliveService()
             .GetSensor();
 
-        _basketContents =  _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "contents")
+        _basketContents = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "contents")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureBasketDevice()
-            .ConfigureDiscovery(discovery =>
-            {
-                discovery.Name = "Nemlig basket";
-            })
+            .ConfigureDiscovery(discovery => { discovery.Name = "Nemlig basket"; })
             .ConfigureAliveService()
             .GetSensor();
 
-        _basketReadyToOrder =   _hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "ready")
+        _basketReadyToOrder = _hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "ready")
             .ConfigureTopics(HassTopicKind.State)
             .ConfigureBasketDevice()
             .ConfigureDiscovery(discovery =>
@@ -77,10 +70,7 @@ internal class NemligBasketContentsScraper : IResponseScraper
         // Create sync button
         _hassMqttManager.ConfigureSensor<MqttButton>(HassUniqueIdBuilder.GetBasketDeviceId(), "force_sync")
             .ConfigureBasketDevice()
-            .ConfigureDiscovery(discovery =>
-            {
-                discovery.Name = "Nemlig force sync basket";
-            })
+            .ConfigureDiscovery(discovery => { discovery.Name = "Nemlig force sync basket"; })
             .ConfigureAliveService()
             .ConfigureTopics(HassTopicKind.Command)
             .GetSensor();

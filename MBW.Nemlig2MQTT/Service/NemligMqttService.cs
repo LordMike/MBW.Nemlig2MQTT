@@ -60,10 +60,7 @@ internal class NemligMqttService : BackgroundService
         {
             _hassMqttManager.ConfigureSensor<MqttButton>(HassUniqueIdBuilder.GetSystemDeviceId(), "force_sync")
                 .ConfigureSystemDevice()
-                .ConfigureDiscovery(discovery =>
-                {
-                    discovery.Name = "Nemlig force sync all";
-                })
+                .ConfigureDiscovery(discovery => { discovery.Name = "Nemlig force sync all"; })
                 .ConfigureAliveService()
                 .ConfigureTopics(HassTopicKind.Command)
                 .GetSensor();
@@ -73,9 +70,12 @@ internal class NemligMqttService : BackgroundService
         {
             _logger.LogDebug("Updating credit cards, once");
 
-            // Get credit cards
-            NemligCreditCard[] creditCards = await _nemligClient.GetCreditCards(token: stoppingToken);
-            await _scrapers.Process(creditCards, stoppingToken);
+            if (_config.EnableBuyBasket)
+            {
+                // Get credit cards
+                NemligCreditCard[] creditCards = await _nemligClient.GetCreditCards(token: stoppingToken);
+                await _scrapers.Process(creditCards, stoppingToken);
+            }
         }
 
         // Update loop
@@ -85,17 +85,25 @@ internal class NemligMqttService : BackgroundService
 
             try
             {
-                // Get basket
-                NemligBasket basket = await _nemligClient.GetBasket(stoppingToken);
-                await _scrapers.Process(basket, stoppingToken);
+                if (_config.EnableBasket)
+                {
+                    // Get basket
+                    NemligBasket basket = await _nemligClient.GetBasket(stoppingToken);
+                    await _scrapers.Process(basket, stoppingToken);
+                }
 
-                // Get delivery options
-                NemligDeliveryDaysResponse deliveryOptions = await _nemligClient.GetDeliveryDays(_config.DeliveryConfig.DaysToCheck, stoppingToken);
-                await _scrapers.Process(deliveryOptions, stoppingToken);
+                if (_config.EnableDeliveryOptions)
+                {
+                    // Get delivery options
+                    NemligDeliveryDaysResponse deliveryOptions = await _nemligClient.GetDeliveryDays(_config.DeliveryConfig.DaysToCheck, stoppingToken);
+                    await _scrapers.Process(deliveryOptions, stoppingToken);
+                }
 
-                // Get ongoing orders, we assume they're all on first page..
-                BasicOrderHistory orderHistory = await _nemligClient.GetBasicOrderHistory(0, 10, stoppingToken);
-                await _scrapers.Process(orderHistory, stoppingToken);
+                if (_config.EnableNextDelivery)
+                {
+                    LatestOrderHistory latestOrder = await _nemligClient.GetLatestOrderHistory(stoppingToken);
+                    await _scrapers.Process(latestOrder, stoppingToken);
+                }
 
                 // Track API operational status
                 _apiOperationalContainer.MarkOk();
