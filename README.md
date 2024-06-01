@@ -3,7 +3,7 @@
 
 ![logo](Logo/Logo.png)
 
-This is a proxy application to translate the status of a Blue Riiot pool manager, to Home Assistant using MQTT. You can run this application in docker, and it will periodically poll the Blue Riiot API for updates.
+This integration bridges Nemlig.com grocery shopping with Home Assistant using MQTT. You can run this application in docker, and it will periodically poll the status of your Nemlig.com account.
 
 This project uses other libraries of mine, the [MBW.Client.NemligCom](https://github.com/lordMike/mbw.nemlig2mqtt) and [MBW.HassMQTT](https://github.com/LordMike/MBW.HassMQTT) ([nuget](https://www.nuget.org/packages/MBW.HassMQTT)).
 
