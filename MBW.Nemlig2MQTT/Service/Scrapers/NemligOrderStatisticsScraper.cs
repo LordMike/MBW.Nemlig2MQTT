@@ -46,7 +46,7 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
             .ConfigureOrderStatisticsDevice()
             .ConfigureDiscovery(discovery =>
             {
-                discovery.Name = "Orders in the past 30 days";
+                discovery.Name = "Orders total sum the past 30 days";
                 discovery.UnitOfMeasurement = "DKK";
                 discovery.DeviceClass = HassSensorDeviceClass.Monetary;
             })
@@ -65,7 +65,7 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
             .ConfigureOrderStatisticsDevice()
             .ConfigureDiscovery(discovery =>
             {
-                discovery.Name = "Orders in the past 90 days";
+                discovery.Name = "Orders total sum in the past 90 days";
                 discovery.UnitOfMeasurement = "DKK";
                 discovery.DeviceClass = HassSensorDeviceClass.Monetary;
             })
