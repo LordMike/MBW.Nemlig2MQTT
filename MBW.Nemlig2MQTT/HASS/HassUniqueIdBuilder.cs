@@ -2,18 +2,8 @@
 
 internal static class HassUniqueIdBuilder
 {
-    public static string GetSystemDeviceId()
-    {
-        return "Nemlig2MQTT";
-    }
-
-    public static string GetBasketDeviceId()
-    {
-        return "basket";
-    }
-
-    public static string GetNextDeliveryDeviceId()
-    {
-        return "nextdelivery";
-    }
+    public static string GetSystemDeviceId() => "Nemlig2MQTT";
+    public static string GetBasketDeviceId() => "basket";
+    public static string GetNextDeliveryDeviceId() => "nextdelivery";
+    public static string GetOrderStatisticsDeviceId() => "orderstatistics";
 }

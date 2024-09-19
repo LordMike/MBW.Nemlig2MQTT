@@ -32,7 +32,8 @@ internal class NemligMqttService : BackgroundService
     private readonly AsyncAutoResetEvent _syncEvent = new AsyncAutoResetEvent();
     private readonly NemligConfiguration _config;
 
-
+    private DateTime _lastOrderHistoryCheck = DateTime.MinValue;
+    
     public NemligMqttService(
         ILogger<NemligMqttService> logger,
         IOptions<NemligConfiguration> config,
@@ -51,6 +52,7 @@ internal class NemligMqttService : BackgroundService
 
     public void ForceSync()
     {
+        _lastOrderHistoryCheck = DateTime.MinValue;
         _syncEvent.Set();
     }
 
@@ -103,6 +105,20 @@ internal class NemligMqttService : BackgroundService
                 {
                     LatestOrderHistory latestOrder = await _nemligClient.GetLatestOrderHistory(stoppingToken);
                     await _scrapers.Process(latestOrder, stoppingToken);
+                }
+
+                if (_config.EnableOrderHistory)
+                {
+                    // Should we dump orders?
+                    DateTime nextDump = _lastOrderHistoryCheck.Add(_config.OrderHistoryCheckInterval);
+                    if (nextDump < DateTime.UtcNow)
+                    {
+                        // Check
+                        BasicOrderHistory orderHistory =  await _nemligClient.GetBasicOrderHistory(0, 20, stoppingToken);
+                        await _scrapers.Process(orderHistory, stoppingToken);
+
+                        _lastOrderHistoryCheck = DateTime.UtcNow;
+                    }
                 }
 
                 // Track API operational status

@@ -148,6 +148,9 @@ internal class Program
                 if (config.EnableBuyBasket)
                     res.Add(ActivatorUtilities.CreateInstance<NemligCreditCardsScraper>(provider));
 
+                if (config.EnableOrderHistory)
+                    res.Add(ActivatorUtilities.CreateInstance<NemligOrderStatisticsScraper>(provider));
+
                 return res;
             });
     }

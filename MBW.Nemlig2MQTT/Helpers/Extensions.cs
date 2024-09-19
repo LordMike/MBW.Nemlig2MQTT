@@ -42,6 +42,15 @@ internal static class Extensions
         });
     }
 
+    public static IDiscoveryDocumentBuilder<T> ConfigureOrderStatisticsDevice<T>(this IDiscoveryDocumentBuilder<T> builder) where T : IHassDiscoveryDocument
+    {
+        return builder.ConfigureDevice(device =>
+        {
+            device.Name = "Nemlig order statistics";
+            device.Identifiers.Add(HassUniqueIdBuilder.GetOrderStatisticsDeviceId());
+        });
+    }
+
     public static IDiscoveryDocumentBuilder<T> ConfigureNextDeliveryDevice<T>(this IDiscoveryDocumentBuilder<T> builder) where T : IHassDiscoveryDocument
     {
         return builder.ConfigureDevice(device =>
