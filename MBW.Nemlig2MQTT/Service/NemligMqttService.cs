@@ -84,6 +84,7 @@ internal class NemligMqttService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             _logger.LogDebug("Beginning update");
+            TimeSpan waitInterval = _config.CheckInterval;
 
             try
             {
@@ -101,10 +102,30 @@ internal class NemligMqttService : BackgroundService
                     await _scrapers.Process(deliveryOptions, stoppingToken);
                 }
 
+                LatestOrderHistory? latestOrder = null;
+
                 if (_config.EnableNextDelivery)
                 {
-                    LatestOrderHistory latestOrder = await _nemligClient.GetLatestOrderHistory(stoppingToken);
+                    latestOrder = await _nemligClient.GetLatestOrderHistory(stoppingToken);
                     await _scrapers.Process(latestOrder, stoppingToken);
+
+                    if (latestOrder.Order != null)
+                    {
+                        TimeSpan untilDelivery = latestOrder.Order.DeliveryTime.Start.UtcDateTime - DateTime.UtcNow;
+
+                        if (untilDelivery <= TimeSpan.FromHours(4))
+                        {
+                            DeliverySpot spot = await _nemligClient.GetDeliverySpot(stoppingToken);
+                            await _scrapers.Process(spot, stoppingToken);
+                        }
+
+                        if (untilDelivery <= TimeSpan.FromMinutes(30))
+                            waitInterval = TimeSpan.FromMinutes(5);
+                        else if (untilDelivery <= TimeSpan.FromHours(4))
+                            waitInterval = TimeSpan.FromMinutes(20);
+                        else if (untilDelivery <= _config.DeliveryConfig.NextDeliveryCheckInterval)
+                            waitInterval = _config.DeliveryConfig.NextDeliveryCheckInterval;
+                    }
                 }
 
                 if (_config.EnableOrderHistory)
@@ -138,10 +159,10 @@ internal class NemligMqttService : BackgroundService
                 _apiOperationalContainer.MarkError(e.Message);
             }
 
-            // Wait for next event, or the check interval
+            // Wait for next event, or the calculated check interval
             try
             {
-                using CancellationTokenSource cts = new CancellationTokenSource(_config.CheckInterval);
+                using CancellationTokenSource cts = new CancellationTokenSource(waitInterval);
                 using CancellationTokenSource combinedCancel = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, stoppingToken);
 
                 await _syncEvent.WaitAsync(combinedCancel.Token);

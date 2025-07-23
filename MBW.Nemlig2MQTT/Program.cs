@@ -130,6 +130,7 @@ internal class Program
             .AddSingletonAndHostedService<NemligMqttService>()
             .AddSingleton<ScraperManager>()
             .AddSingleton<NemligDeliveryOptionsScraper>()
+            .AddSingleton<NemligDeliverySpotScraper>()
             .AddSingleton<IEnumerable<IResponseScraper>>(provider =>
             {
                 List<IResponseScraper> res = new List<IResponseScraper>();
@@ -143,7 +144,10 @@ internal class Program
                     res.Add(provider.GetRequiredService<NemligDeliveryOptionsScraper>());
 
                 if (config.EnableNextDelivery)
+                {
                     res.Add(ActivatorUtilities.CreateInstance<NemligNextDeliveryScraper>(provider));
+                    res.Add(provider.GetRequiredService<NemligDeliverySpotScraper>());
+                }
 
                 if (config.EnableBuyBasket)
                     res.Add(ActivatorUtilities.CreateInstance<NemligCreditCardsScraper>(provider));

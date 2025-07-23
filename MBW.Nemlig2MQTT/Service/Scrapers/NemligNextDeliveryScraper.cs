@@ -130,6 +130,11 @@ internal class NemligNextDeliveryScraper : IResponseScraper
         await Update(latestOrderHistory.Order, token);
     }
 
+    public void SetEstimatedArrival(DateTime? estimate)
+    {
+        _nextDeliveryTimeEstimate.SetValue(HassTopicKind.State, estimate);
+    }
+
     private void Clear()
     {
         _latestOrderId = null;
