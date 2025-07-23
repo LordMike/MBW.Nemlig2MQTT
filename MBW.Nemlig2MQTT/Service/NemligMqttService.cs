@@ -85,6 +85,9 @@ internal class NemligMqttService : BackgroundService
         {
             _logger.LogDebug("Beginning update");
 
+            TimeSpan nextWait = _config.CheckInterval;
+            LatestOrderHistory? latestOrder = null;
+
             try
             {
                 if (_config.EnableBasket)
@@ -101,10 +104,27 @@ internal class NemligMqttService : BackgroundService
                     await _scrapers.Process(deliveryOptions, stoppingToken);
                 }
 
+                DeliverySpot? deliverySpot = null;
+
                 if (_config.EnableNextDelivery)
                 {
-                    LatestOrderHistory latestOrder = await _nemligClient.GetLatestOrderHistory(stoppingToken);
+                    latestOrder = await _nemligClient.GetLatestOrderHistory(stoppingToken);
                     await _scrapers.Process(latestOrder, stoppingToken);
+
+                    if (latestOrder.Order != null &&
+                        (latestOrder.Order.IsDeliveryOnWay || latestOrder.Order.Status == OrderStatus.Ekspederes ||
+                         latestOrder.Order.DeliveryTime.Start - DateTimeOffset.UtcNow <= _config.DeliveryConfig.NextDeliveryCheckInterval))
+                    {
+                        try
+                        {
+                            deliverySpot = await _nemligClient.GetDeliverySpot(stoppingToken);
+                            await _scrapers.Process(deliverySpot, stoppingToken);
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogDebug(e, "Unable to retrieve DeliverySpot");
+                        }
+                    }
                 }
 
                 if (_config.EnableOrderHistory)
@@ -125,6 +145,17 @@ internal class NemligMqttService : BackgroundService
                 _apiOperationalContainer.MarkOk();
 
                 await _hassMqttManager.FlushAll(stoppingToken);
+
+                if (latestOrder?.Order != null)
+                {
+                    TimeSpan diff = latestOrder.Order.DeliveryTime.Start - DateTimeOffset.UtcNow;
+                    if (diff <= TimeSpan.FromMinutes(30))
+                        nextWait = TimeSpan.FromMinutes(5);
+                    else if (diff <= TimeSpan.FromHours(4))
+                        nextWait = TimeSpan.FromMinutes(20);
+                    else if (diff <= _config.DeliveryConfig.NextDeliveryCheckInterval)
+                        nextWait = _config.DeliveryConfig.NextDeliveryCheckInterval;
+                }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -141,7 +172,7 @@ internal class NemligMqttService : BackgroundService
             // Wait for next event, or the check interval
             try
             {
-                using CancellationTokenSource cts = new CancellationTokenSource(_config.CheckInterval);
+                using CancellationTokenSource cts = new CancellationTokenSource(nextWait);
                 using CancellationTokenSource combinedCancel = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, stoppingToken);
 
                 await _syncEvent.WaitAsync(combinedCancel.Token);
