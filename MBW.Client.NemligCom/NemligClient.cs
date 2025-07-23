@@ -349,4 +349,16 @@ public class NemligClient
 
         return response;
     }
+
+    public async Task<DeliverySpot> GetDeliverySpot(CancellationToken token = default)
+    {
+        await _requestSigner.LoginIfNeeded(this, token);
+
+        using HttpClient httpClient = _httpClientProducer.CreateClient();
+        using HttpResponseMessage resp = await httpClient.GetAsync("/webapi/Order/DeliverySpot", HttpCompletionOption.ResponseContentRead, token);
+
+        DeliverySpot response = await resp.Content.ReadAsJson<DeliverySpot>(token);
+
+        return response;
+    }
 }
