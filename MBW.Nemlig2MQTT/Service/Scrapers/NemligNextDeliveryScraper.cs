@@ -20,7 +20,6 @@ internal class NemligNextDeliveryScraper : IResponseScraper
 {
     private readonly ILogger<NemligNextDeliveryScraper> _logger;
     private readonly NemligClient _nemligClient;
-    private readonly HassMqttManager _hassMqttManager;
     private readonly DeliveryRenderer _deliveryRenderer;
 
     private int? _latestOrderId;
@@ -30,9 +29,6 @@ internal class NemligNextDeliveryScraper : IResponseScraper
     private readonly ISensorContainer _nextDeliveryEditDeadline;
     private readonly ISensorContainer _nextDeliveryOnTheWay;
     private readonly ISensorContainer _nextDeliveryEditDeadlinePassed;
-    private readonly ISensorContainer _nextDeliveryTimeEstimate;
-
-    internal ISensorContainer NextDeliveryTimeEstimateSensor => _nextDeliveryTimeEstimate;
 
     public NemligNextDeliveryScraper(
         ILogger<NemligNextDeliveryScraper> logger,
@@ -43,9 +39,8 @@ internal class NemligNextDeliveryScraper : IResponseScraper
         _logger = logger;
         _nemligClient = nemligClient;
         _deliveryRenderer = deliveryRenderer;
-        _hassMqttManager = hassMqttManager;
 
-        _nextDeliveryTime = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "timestamp")
+        _nextDeliveryTime = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "timestamp")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureNextDeliveryDevice()
             .ConfigureDiscovery(discovery =>
@@ -56,32 +51,21 @@ internal class NemligNextDeliveryScraper : IResponseScraper
             .ConfigureAliveService()
             .GetSensor();
 
-        _nextDeliveryTimeEstimate = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "estimate")
-            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
-            .ConfigureNextDeliveryDevice()
-            .ConfigureDiscovery(discovery =>
-            {
-                discovery.Name = "Next delivery estimate";
-                discovery.DeviceClass = HassSensorDeviceClass.Timestamp;
-            })
-            .ConfigureAliveService()
-            .GetSensor();
-
-        _nextDeliveryBoxes = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "boxcount")
+        _nextDeliveryBoxes = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "boxcount")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureNextDeliveryDevice()
             .ConfigureDiscovery(discovery => { discovery.Name = "Delivery boxes count"; })
             .ConfigureAliveService()
             .GetSensor();
 
-        _nextDeliveryContents = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "contents")
+        _nextDeliveryContents = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "contents")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureNextDeliveryDevice()
             .ConfigureDiscovery(discovery => { discovery.Name = "Delivery contents"; })
             .ConfigureAliveService()
             .GetSensor();
 
-        _nextDeliveryEditDeadline = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "editdeadline")
+        _nextDeliveryEditDeadline = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "editdeadline")
             .ConfigureTopics(HassTopicKind.State)
             .ConfigureNextDeliveryDevice()
             .ConfigureDiscovery(discovery =>
@@ -92,7 +76,7 @@ internal class NemligNextDeliveryScraper : IResponseScraper
             .ConfigureAliveService()
             .GetSensor();
 
-        _nextDeliveryEditDeadlinePassed = _hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "editdeadline_passed")
+        _nextDeliveryEditDeadlinePassed = hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "editdeadline_passed")
             .ConfigureTopics(HassTopicKind.State)
             .ConfigureNextDeliveryDevice()
             .ConfigureDiscovery(discovery =>
@@ -103,7 +87,7 @@ internal class NemligNextDeliveryScraper : IResponseScraper
             .ConfigureAliveService()
             .GetSensor();
 
-        _nextDeliveryOnTheWay = _hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "ontheway")
+        _nextDeliveryOnTheWay = hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "ontheway")
             .ConfigureTopics(HassTopicKind.State)
             .ConfigureNextDeliveryDevice()
             .ConfigureDiscovery(discovery =>
@@ -136,7 +120,6 @@ internal class NemligNextDeliveryScraper : IResponseScraper
     private void Clear()
     {
         _latestOrderId = null;
-        _nextDeliveryTimeEstimate.SetValue(HassTopicKind.State, null);
         _nextDeliveryTime.SetValue(HassTopicKind.State, null);
         _nextDeliveryContents.SetValue(HassTopicKind.State, "");
         _nextDeliveryBoxes.SetValue(HassTopicKind.State, 0);
@@ -159,7 +142,6 @@ internal class NemligNextDeliveryScraper : IResponseScraper
             _latestOrderId = order.Id;
         }
 
-        _nextDeliveryTimeEstimate.SetValue(HassTopicKind.State, order.EstimatedArrivalTime);
         _nextDeliveryTime.SetValue(HassTopicKind.State, order.DeliveryTime.Start);
         _nextDeliveryTime.SetAttribute("start", order.DeliveryTime.Start);
         _nextDeliveryTime.SetAttribute("end", order.DeliveryTime.End);

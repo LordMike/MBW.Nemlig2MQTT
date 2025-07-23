@@ -1,4 +1,6 @@
-﻿namespace MBW.Client.NemligCom.Objects.Settings;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace MBW.Client.NemligCom.Objects.Settings;
 
 public class Timeslotbackgroundimage
 {

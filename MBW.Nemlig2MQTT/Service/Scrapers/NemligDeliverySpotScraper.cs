@@ -2,9 +2,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using MBW.Client.NemligCom.Objects.Order;
 using MBW.HassMQTT;
+using MBW.HassMQTT.CommonServices.AliveAndWill;
 using MBW.HassMQTT.Interfaces;
 using MBW.HassMQTT.Extensions;
 using MBW.HassMQTT.DiscoveryModels.Enum;
+using MBW.HassMQTT.DiscoveryModels.Models;
+using MBW.Nemlig2MQTT.HASS;
+using MBW.Nemlig2MQTT.Helpers;
 
 namespace MBW.Nemlig2MQTT.Service.Scrapers;
 
@@ -12,9 +16,18 @@ internal class NemligDeliverySpotScraper : IResponseScraper
 {
     private readonly ISensorContainer _nextDeliveryTimeEstimate;
 
-    public NemligDeliverySpotScraper(NemligNextDeliveryScraper nextDelivery)
+    public NemligDeliverySpotScraper(HassMqttManager hassMqttManager)
     {
-        _nextDeliveryTimeEstimate = nextDelivery.NextDeliveryTimeEstimateSensor;
+        _nextDeliveryTimeEstimate = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "estimate")
+            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
+            .ConfigureNextDeliveryDevice()
+            .ConfigureDiscovery(discovery =>
+            {
+                discovery.Name = "Next delivery estimate";
+                discovery.DeviceClass = HassSensorDeviceClass.Timestamp;
+            })
+            .ConfigureAliveService()
+            .GetSensor();
     }
 
     public Task Scrape(object response, CancellationToken token = default)

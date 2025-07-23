@@ -86,7 +86,7 @@ internal class NemligMqttService : BackgroundService
             _logger.LogDebug("Beginning update");
 
             TimeSpan nextWait = _config.CheckInterval;
-            LatestOrderHistory? latestOrder = null;
+            LatestOrderHistory latestOrder = null;
 
             try
             {
@@ -104,7 +104,7 @@ internal class NemligMqttService : BackgroundService
                     await _scrapers.Process(deliveryOptions, stoppingToken);
                 }
 
-                DeliverySpot? deliverySpot = null;
+                DeliverySpot deliverySpot;
 
                 if (_config.EnableNextDelivery)
                 {

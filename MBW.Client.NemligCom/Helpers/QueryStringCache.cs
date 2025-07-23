@@ -4,7 +4,7 @@ internal static class QueryStringCache
 {
     public static QueryStringBuilder GetBuilder(string resource)
     {
-        QueryStringBuilder? builder = new QueryStringBuilder();
+        QueryStringBuilder builder = new QueryStringBuilder();
         builder.Init(resource);
 
         return builder;

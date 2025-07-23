@@ -12,7 +12,7 @@ public static class NemligClientExtensions
 {
     public static IServiceCollection AddNemligClient(this IServiceCollection services, Action<NemligClientBuilder> configure)
     {
-        return services.AddNemligClient((provider, builder) => configure(builder));
+        return services.AddNemligClient((_, builder) => configure(builder));
     }
 
     public static IServiceCollection AddNemligClient(this IServiceCollection services, Action<IServiceProvider, NemligClientBuilder> configure)

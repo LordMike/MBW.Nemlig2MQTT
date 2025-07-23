@@ -1,6 +1,5 @@
 ﻿using System.Net.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MBW.Client.NemligCom.Builder;
 
@@ -8,7 +7,6 @@ public class NemligClientBuilder
 {
     private IHttpClientProducer _clientProducer;
     private IRequestSigner _requestSigner;
-    private ILogger<NemligClient> _logger = NullLogger<NemligClient>.Instance;
 
     public NemligClientBuilder()
     {
@@ -35,12 +33,11 @@ public class NemligClientBuilder
 
     public NemligClientBuilder UseLogger(ILogger<NemligClient> logger)
     {
-        _logger = logger;
         return this;
     }
 
     public NemligClient Build()
     {
-        return new NemligClient(_logger, _clientProducer, _requestSigner);
+        return new NemligClient(_clientProducer, _requestSigner);
     }
 }

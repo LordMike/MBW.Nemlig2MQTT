@@ -16,7 +16,6 @@ namespace MBW.Nemlig2MQTT.Service.Scrapers;
 internal class NemligBasketContentsScraper : IResponseScraper
 {
     private readonly DeliveryRenderer _deliveryRenderer;
-    private readonly HassMqttManager _hassMqttManager;
 
     private readonly ISensorContainer _basketBalance;
     private readonly ISensorContainer _basketReadyToOrder;
@@ -26,9 +25,8 @@ internal class NemligBasketContentsScraper : IResponseScraper
     public NemligBasketContentsScraper(HassMqttManager hassMqttManager, DeliveryRenderer deliveryRenderer)
     {
         _deliveryRenderer = deliveryRenderer;
-        _hassMqttManager = hassMqttManager;
 
-        _basketBalance = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "balance")
+        _basketBalance = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "balance")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureBasketDevice()
             .ConfigureDiscovery(discovery =>
@@ -39,21 +37,21 @@ internal class NemligBasketContentsScraper : IResponseScraper
             .ConfigureAliveService()
             .GetSensor();
 
-        _basketDelivery = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "delivery")
+        _basketDelivery = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "delivery")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureBasketDevice()
             .ConfigureDiscovery(discovery => { discovery.Name = "Nemlig basket delivery"; })
             .ConfigureAliveService()
             .GetSensor();
 
-        _basketContents = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "contents")
+        _basketContents = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "contents")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureBasketDevice()
             .ConfigureDiscovery(discovery => { discovery.Name = "Nemlig basket"; })
             .ConfigureAliveService()
             .GetSensor();
 
-        _basketReadyToOrder = _hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "ready")
+        _basketReadyToOrder = hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetBasketDeviceId(), "ready")
             .ConfigureTopics(HassTopicKind.State)
             .ConfigureBasketDevice()
             .ConfigureDiscovery(discovery =>
@@ -68,7 +66,7 @@ internal class NemligBasketContentsScraper : IResponseScraper
 
 
         // Create sync button
-        _hassMqttManager.ConfigureSensor<MqttButton>(HassUniqueIdBuilder.GetBasketDeviceId(), "force_sync")
+        hassMqttManager.ConfigureSensor<MqttButton>(HassUniqueIdBuilder.GetBasketDeviceId(), "force_sync")
             .ConfigureBasketDevice()
             .ConfigureDiscovery(discovery => { discovery.Name = "Nemlig force sync basket"; })
             .ConfigureAliveService()

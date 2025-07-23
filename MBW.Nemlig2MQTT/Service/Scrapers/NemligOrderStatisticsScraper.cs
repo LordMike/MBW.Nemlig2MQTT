@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MBW.Client.NemligCom;
+using JetBrains.Annotations;
 using MBW.Client.NemligCom.Objects.Order;
 using MBW.HassMQTT;
 using MBW.HassMQTT.CommonServices.AliveAndWill;
@@ -20,7 +20,6 @@ namespace MBW.Nemlig2MQTT.Service.Scrapers;
 internal class NemligOrderStatisticsScraper : IResponseScraper
 {
     private readonly ILogger<NemligOrderStatisticsScraper> _logger;
-    private readonly HassMqttManager _hassMqttManager;
 
     private readonly ISensorContainer _pastMonthOrders;
     private readonly ISensorContainer _pastMonthOrderSum;
@@ -32,16 +31,15 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
         HassMqttManager hassMqttManager)
     {
         _logger = logger;
-        _hassMqttManager = hassMqttManager;
 
-        _pastMonthOrders = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_1mo_count")
+        _pastMonthOrders = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_1mo_count")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureOrderStatisticsDevice()
             .ConfigureDiscovery(discovery => { discovery.Name = "Orders in the past 30 days"; })
             .ConfigureAliveService()
             .GetSensor();
 
-        _pastMonthOrderSum = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_1mo_sum")
+        _pastMonthOrderSum = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_1mo_sum")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureOrderStatisticsDevice()
             .ConfigureDiscovery(discovery =>
@@ -53,14 +51,14 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
             .ConfigureAliveService()
             .GetSensor();
 
-        _pastQuarterOrders = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_3mo_count")
+        _pastQuarterOrders = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_3mo_count")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureOrderStatisticsDevice()
             .ConfigureDiscovery(discovery => { discovery.Name = "Orders in the past 90 days"; })
             .ConfigureAliveService()
             .GetSensor();
 
-        _pastQuarterOrderSum = _hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_3mo_sum")
+        _pastQuarterOrderSum = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_3mo_sum")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
             .ConfigureOrderStatisticsDevice()
             .ConfigureDiscovery(discovery =>
@@ -78,7 +76,7 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
         if (response is not BasicOrderHistory orderHistory)
             return Task.CompletedTask;
 
-        static void Process(IEnumerable<Order> orders, ISensorContainer ordersSensor, ISensorContainer sumSensor)
+        static void Process([InstantHandle]IEnumerable<Order> orders, ISensorContainer ordersSensor, ISensorContainer sumSensor)
         {
             int count = 0;
             decimal sum = 0;

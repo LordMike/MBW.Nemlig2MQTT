@@ -16,21 +16,18 @@ using MBW.Client.NemligCom.Objects.Menu;
 using MBW.Client.NemligCom.Objects.Order;
 using MBW.Client.NemligCom.Objects.Search;
 using MBW.Client.NemligCom.Objects.Settings;
-using Microsoft.Extensions.Logging;
 
 namespace MBW.Client.NemligCom;
 
 public class NemligClient
 {
-    private readonly ILogger<NemligClient> _logger;
     private readonly IHttpClientProducer _httpClientProducer;
     private readonly IRequestSigner _requestSigner;
     private NemligSiteSettings? _siteSettings;
     private Uri? _nemligBaseUrl;
 
-    internal NemligClient(ILogger<NemligClient> logger, IHttpClientProducer httpClientProducer, IRequestSigner requestSigner)
+    internal NemligClient(IHttpClientProducer httpClientProducer, IRequestSigner requestSigner)
     {
-        _logger = logger;
         _httpClientProducer = httpClientProducer;
         _requestSigner = requestSigner;
     }
@@ -280,8 +277,6 @@ public class NemligClient
 
         using HttpClient httpClient = _httpClientProducer.CreateClient();
         using HttpResponseMessage resp = await httpClient.PostJson(builder, request, HttpCompletionOption.ResponseContentRead, token);
-
-        string respString = await resp.Content.ReadAsStringAsync();
 
         QueryStringCache.Return(builder);
 

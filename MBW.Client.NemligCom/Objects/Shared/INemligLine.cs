@@ -1,4 +1,4 @@
-﻿namespace MBW.Client.NemligCom.Objects.Basket;
+﻿namespace MBW.Client.NemligCom.Objects.Shared;
 
 public interface INemligLine
 {

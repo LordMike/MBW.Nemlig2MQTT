@@ -28,7 +28,6 @@ internal class NemligDeliveryOptionsScraper : IResponseScraper
     private readonly NemligConfiguration _config;
     private readonly ILogger<NemligDeliveryOptionsScraper> _logger;
     private readonly NemligClient _nemligClient;
-    private readonly HassMqttManager _hassMqttManager;
     private readonly DeliveryRenderer _deliveryRenderer;
     private readonly Dictionary<string, int> _callbackLookup = new(StringComparer.Ordinal);
 
@@ -41,7 +40,6 @@ internal class NemligDeliveryOptionsScraper : IResponseScraper
         _config = config.Value;
         _logger = logger;
         _nemligClient = nemligClient;
-        _hassMqttManager = hassMqttManager;
         _deliveryRenderer = deliveryRenderer;
 
         _prioritizeHours = new BitArray(24);
@@ -51,7 +49,7 @@ internal class NemligDeliveryOptionsScraper : IResponseScraper
                 _prioritizeHours[hour] = true;
         }
 
-        _deliverySelectConfig = _hassMqttManager.ConfigureSensor<MqttSelect>(HassUniqueIdBuilder.GetBasketDeviceId(), "delivery_select")
+        _deliverySelectConfig = hassMqttManager.ConfigureSensor<MqttSelect>(HassUniqueIdBuilder.GetBasketDeviceId(), "delivery_select")
             .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes, HassTopicKind.Command)
             .ConfigureBasketDevice()
             .ConfigureDiscovery(discovery =>

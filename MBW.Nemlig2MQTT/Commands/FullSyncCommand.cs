@@ -10,10 +10,10 @@ namespace MBW.Nemlig2MQTT.Commands;
 
 internal class FullSyncCommand : IMqttCommandHandler
 {
-    private readonly ILogger<BasketSyncCommand> _logger;
+    private readonly ILogger<FullSyncCommand> _logger;
     private readonly NemligMqttService _mqttService;
 
-    public FullSyncCommand(ILogger<BasketSyncCommand> logger, NemligMqttService mqttService)
+    public FullSyncCommand(ILogger<FullSyncCommand> logger, NemligMqttService mqttService)
     {
         _logger = logger;
         _mqttService = mqttService;
@@ -24,10 +24,11 @@ internal class FullSyncCommand : IMqttCommandHandler
         return new[] { HassUniqueIdBuilder.GetSystemDeviceId(), "force_sync", "command" };
     }
 
-    public async Task Handle(string[] topicLevels, MqttApplicationMessage message, CancellationToken token = default)
+    public Task Handle(string[] topicLevels, MqttApplicationMessage message, CancellationToken token = default)
     {
         _logger.LogInformation("Force syncing all");
 
         _mqttService.ForceSync();
+        return Task.CompletedTask;
     }
 }

@@ -48,7 +48,7 @@ internal class Program
 
                 if (extraConfigFile != null)
                 {
-                    Log.Logger.Information("Loading extra config file at {path}", extraConfigFile);
+                    Log.Logger.Information("Loading extra config file at  {Path}", extraConfigFile);
                     builder.AddJsonFile(extraConfigFile, true);
                 }
             })

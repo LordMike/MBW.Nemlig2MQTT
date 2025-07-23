@@ -1,4 +1,6 @@
-﻿namespace MBW.Client.NemligCom.Objects.Basket;
+﻿using MBW.Client.NemligCom.Objects.Shared;
+
+namespace MBW.Client.NemligCom.Objects.Basket;
 
 public class BasketLine : INemligLine
 {
