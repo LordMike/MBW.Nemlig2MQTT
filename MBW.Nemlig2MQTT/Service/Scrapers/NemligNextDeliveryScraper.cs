@@ -32,6 +32,8 @@ internal class NemligNextDeliveryScraper : IResponseScraper
     private readonly ISensorContainer _nextDeliveryEditDeadlinePassed;
     private readonly ISensorContainer _nextDeliveryTimeEstimate;
 
+    internal ISensorContainer NextDeliveryTimeEstimateSensor => _nextDeliveryTimeEstimate;
+
     public NemligNextDeliveryScraper(
         ILogger<NemligNextDeliveryScraper> logger,
         NemligClient nemligClient,
@@ -117,6 +119,7 @@ internal class NemligNextDeliveryScraper : IResponseScraper
 
     public async Task Scrape(object response, CancellationToken token = default)
     {
+
         if (response is not LatestOrderHistory { Order: not null } latestOrderHistory ||
             latestOrderHistory.Order.Status is not (OrderStatus.Bestilt or OrderStatus.Ekspederes) && !latestOrderHistory.Order.IsDeliveryOnWay)
         {
@@ -164,4 +167,6 @@ internal class NemligNextDeliveryScraper : IResponseScraper
         _nextDeliveryOnTheWay.SetValue(HassTopicKind.State, order.IsDeliveryOnWay || order.Status == OrderStatus.Ekspederes ? nameof(NemligDeliveryOnTheWay.Delivering) : nameof(NemligDeliveryOnTheWay.Idle));
         _nextDeliveryEditDeadlinePassed.SetValue(HassTopicKind.State, order.IsDeadlinePassed ? "on" : "off");
     }
+
+    // Estimate updates are provided by the DeliverySpot scraper
 }
