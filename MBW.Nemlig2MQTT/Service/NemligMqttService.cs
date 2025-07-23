@@ -148,13 +148,14 @@ internal class NemligMqttService : BackgroundService
 
                 if (latestOrder?.Order != null)
                 {
-                    TimeSpan diff = latestOrder.Order.DeliveryTime.Start - DateTimeOffset.UtcNow;
-                    if (diff <= TimeSpan.FromMinutes(30))
-                        nextWait = TimeSpan.FromMinutes(5);
-                    else if (diff <= TimeSpan.FromHours(4))
-                        nextWait = TimeSpan.FromMinutes(20);
-                    else if (diff <= _config.DeliveryConfig.NextDeliveryCheckInterval)
-                        nextWait = _config.DeliveryConfig.NextDeliveryCheckInterval;
+                    double minutes = (latestOrder.Order.DeliveryTime.Start - DateTimeOffset.UtcNow).TotalMinutes;
+                    nextWait = minutes switch
+                    {
+                        var m when m <= 30 => TimeSpan.FromMinutes(5),
+                        var m when m <= 240 => TimeSpan.FromMinutes(20),
+                        var m when m <= _config.DeliveryConfig.NextDeliveryCheckInterval.TotalMinutes => _config.DeliveryConfig.NextDeliveryCheckInterval,
+                        _ => _config.CheckInterval
+                    };
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
