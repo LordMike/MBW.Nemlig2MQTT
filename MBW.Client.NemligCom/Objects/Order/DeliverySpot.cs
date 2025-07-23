@@ -1,3 +1,5 @@
+using System;
+
 namespace MBW.Client.NemligCom.Objects.Order;
 
 public class DeliverySpot
