@@ -6,24 +6,6 @@ namespace MBW.Nemlig2MQTT.Configuration;
 
 internal class NemligDeliveryConfig
 {
-    [Range(1, 7)]
-    public int DaysToCheck { get; set; } = 4;
-
-    [Range(4, 672)]
-    public int PrioritizeMaxHours { get; set; } = 48;
-
-    public bool PrioritizeCheapHours { get; set; } = true;
-
-    public bool PrioritizeShortTimespan { get; set; } = false;
-
-    public bool PrioritizeFreeDelivery { get; set; } = true;
-
-    [Range(0, 23)]
-    public byte[] PrioritizeHours { get; set; }
-
-    [Range(1, int.MaxValue)]
-    public int? MaxDeliveryPrice { get; set; }
-
     public NemligDeliveryType[] AllowDeliveryTypes { get; set; }
 
 

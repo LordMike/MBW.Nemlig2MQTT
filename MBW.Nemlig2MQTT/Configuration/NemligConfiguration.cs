@@ -18,8 +18,5 @@ internal class NemligConfiguration
     public NemligDeliveryConfig DeliveryConfig { get; set; } = new NemligDeliveryConfig();
 
     public bool EnableNextDelivery { get; set; } = true;
-    public bool EnableDeliveryOptions { get; set; } = true;
-    public bool EnableBasket { get; set; } = true;
-    public bool EnableBuyBasket { get; set; } = true;
     public bool EnableOrderHistory { get; set; } = true;
 }

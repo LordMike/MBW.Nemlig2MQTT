@@ -2,9 +2,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MBW.Client.NemligCom;
-using MBW.Client.NemligCom.Objects.Basket;
-using MBW.Client.NemligCom.Objects.Checkout;
-using MBW.Client.NemligCom.Objects.Delivery;
 using MBW.Client.NemligCom.Objects.Order;
 using MBW.HassMQTT;
 using MBW.HassMQTT.CommonServices.AliveAndWill;
@@ -68,18 +65,6 @@ internal class NemligMqttService : BackgroundService
                 .GetSensor();
         }
 
-        // Update once
-        {
-            _logger.LogDebug("Updating credit cards, once");
-
-            if (_config.EnableBuyBasket)
-            {
-                // Get credit cards
-                NemligCreditCard[] creditCards = await _nemligClient.GetCreditCards(token: stoppingToken);
-                await _scrapers.Process(creditCards, stoppingToken);
-            }
-        }
-
         // Update loop
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -90,20 +75,6 @@ internal class NemligMqttService : BackgroundService
 
             try
             {
-                if (_config.EnableBasket)
-                {
-                    // Get basket
-                    NemligBasket basket = await _nemligClient.GetBasket(stoppingToken);
-                    await _scrapers.Process(basket, stoppingToken);
-                }
-
-                if (_config.EnableDeliveryOptions)
-                {
-                    // Get delivery options
-                    NemligDeliveryDaysResponse deliveryOptions = await _nemligClient.GetDeliveryDays(_config.DeliveryConfig.DaysToCheck, stoppingToken);
-                    await _scrapers.Process(deliveryOptions, stoppingToken);
-                }
-
                 DeliverySpot deliverySpot;
 
                 if (_config.EnableNextDelivery)

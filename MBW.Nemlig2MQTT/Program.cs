@@ -79,10 +79,7 @@ internal class Program
         // Commands
         services
             .AddMqttCommandService()
-            .AddMqttCommandHandler<BasketSyncCommand>()
-            .AddMqttCommandHandler<BasketOrderCcCommand>()
-            .AddMqttCommandHandler<FullSyncCommand>()
-            .AddMqttCommandHandler<DeliveryTimeSetCommand>();
+            .AddMqttCommandHandler<FullSyncCommand>();
 
         services
             .Configure<NemligHassConfiguration>(context.Configuration.GetSection("HASS"))
@@ -129,28 +126,15 @@ internal class Program
             .AddSingletonAndHostedService<ApiOperationalContainer>()
             .AddSingletonAndHostedService<NemligMqttService>()
             .AddSingleton<ScraperManager>()
-            .AddSingleton<NemligDeliverySpotScraper>()
-            .AddSingleton<NemligDeliveryOptionsScraper>()
             .AddSingleton<IEnumerable<IResponseScraper>>(provider =>
             {
                 List<IResponseScraper> res = new List<IResponseScraper>();
                 NemligConfiguration config = provider.GetOptions<NemligConfiguration>();
 
-                if (config.EnableBasket)
-                    res.Add(ActivatorUtilities.CreateInstance<NemligBasketContentsScraper>(provider));
-
-                if (config.EnableDeliveryOptions)
-                    // This is special, needs to be invoked by command also
-                    res.Add(provider.GetRequiredService<NemligDeliveryOptionsScraper>());
-
                 if (config.EnableNextDelivery)
                 {
                     res.Add(ActivatorUtilities.CreateInstance<NemligNextDeliveryScraper>(provider));
-                    res.Add(ActivatorUtilities.CreateInstance<NemligDeliverySpotScraper>(provider));
                 }
-
-                if (config.EnableBuyBasket)
-                    res.Add(ActivatorUtilities.CreateInstance<NemligCreditCardsScraper>(provider));
 
                 if (config.EnableOrderHistory)
                     res.Add(ActivatorUtilities.CreateInstance<NemligOrderStatisticsScraper>(provider));

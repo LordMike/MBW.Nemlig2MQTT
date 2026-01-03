@@ -17,29 +17,10 @@ internal static class Extensions
         return provider.GetRequiredService<IOptions<TOptions>>().Value;
     }
 
-    public static ILogger<T> GetLogger<T>(this IServiceProvider provider)
-    {
-        return provider.GetRequiredService<ILogger<T>>();
-    }
-
-    public static ILogger GetLogger(this IServiceProvider provider, Type type)
-    {
-        return provider.GetRequiredService<ILoggerFactory>().CreateLogger(type);
-    }
-
     public static IServiceCollection AddSingletonAndHostedService<TService>(this IServiceCollection services) where TService : class, IHostedService
     {
         return services.AddSingleton<TService>()
             .AddHostedService(x => x.GetRequiredService<TService>());
-    }
-
-    public static IDiscoveryDocumentBuilder<T> ConfigureBasketDevice<T>(this IDiscoveryDocumentBuilder<T> builder) where T : IHassDiscoveryDocument
-    {
-        return builder.ConfigureDevice(device =>
-        {
-            device.Name = "Nemlig Basket";
-            device.Identifiers.Add(HassUniqueIdBuilder.GetBasketDeviceId());
-        });
     }
 
     public static IDiscoveryDocumentBuilder<T> ConfigureOrderStatisticsDevice<T>(this IDiscoveryDocumentBuilder<T> builder) where T : IHassDiscoveryDocument

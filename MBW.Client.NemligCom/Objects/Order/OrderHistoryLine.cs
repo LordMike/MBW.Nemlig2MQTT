@@ -1,5 +1,4 @@
-﻿using MBW.Client.NemligCom.Objects.Basket;
-using MBW.Client.NemligCom.Objects.Shared;
+﻿using MBW.Client.NemligCom.Objects.Shared;
 
 namespace MBW.Client.NemligCom.Objects.Order;
 
