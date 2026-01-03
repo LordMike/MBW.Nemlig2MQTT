@@ -30,7 +30,7 @@ internal class NemligMqttService : BackgroundService
     private readonly NemligConfiguration _config;
 
     private DateTime _lastOrderHistoryCheck = DateTime.MinValue;
-    
+
     public NemligMqttService(
         ILogger<NemligMqttService> logger,
         IOptions<NemligConfiguration> config,
@@ -84,7 +84,8 @@ internal class NemligMqttService : BackgroundService
 
                     if (latestOrder.Order != null &&
                         (latestOrder.Order.IsDeliveryOnWay || latestOrder.Order.Status == OrderStatus.Ekspederes ||
-                         latestOrder.Order.DeliveryTime.Start - DateTimeOffset.UtcNow <= _config.DeliveryConfig.NextDeliveryCheckInterval))
+                         latestOrder.Order.DeliveryTime.Start - DateTimeOffset.UtcNow <=
+                         _config.DeliveryConfig.NextDeliveryCheckInterval))
                     {
                         try
                         {
@@ -105,7 +106,7 @@ internal class NemligMqttService : BackgroundService
                     if (nextDump < DateTime.UtcNow)
                     {
                         // Check
-                        BasicOrderHistory orderHistory =  await _nemligClient.GetBasicOrderHistory(0, 20, stoppingToken);
+                        BasicOrderHistory orderHistory = await _nemligClient.GetBasicOrderHistory(0, 20, stoppingToken);
                         await _scrapers.Process(orderHistory, stoppingToken);
 
                         _lastOrderHistoryCheck = DateTime.UtcNow;
@@ -124,7 +125,8 @@ internal class NemligMqttService : BackgroundService
                     {
                         var m when m <= 30 => TimeSpan.FromMinutes(5),
                         var m when m <= 240 => TimeSpan.FromMinutes(20),
-                        var m when m <= _config.DeliveryConfig.NextDeliveryCheckInterval.TotalMinutes => _config.DeliveryConfig.NextDeliveryCheckInterval,
+                        var m when m <= _config.DeliveryConfig.NextDeliveryCheckInterval.TotalMinutes => _config
+                            .DeliveryConfig.NextDeliveryCheckInterval,
                         _ => _config.CheckInterval
                     };
                 }
@@ -141,11 +143,14 @@ internal class NemligMqttService : BackgroundService
                 _apiOperationalContainer.MarkError(e.Message);
             }
 
+            _logger.LogInformation("Next query: {WaitTime} minutes", nextWait.TotalMinutes);
+
             // Wait for next event, or the check interval
             try
             {
                 using CancellationTokenSource cts = new CancellationTokenSource(nextWait);
-                using CancellationTokenSource combinedCancel = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, stoppingToken);
+                using CancellationTokenSource combinedCancel =
+                    CancellationTokenSource.CreateLinkedTokenSource(cts.Token, stoppingToken);
 
                 await _syncEvent.WaitAsync(combinedCancel.Token);
             }
