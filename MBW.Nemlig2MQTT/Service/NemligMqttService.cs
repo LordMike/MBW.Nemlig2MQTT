@@ -75,7 +75,7 @@ internal class NemligMqttService : BackgroundService
 
             try
             {
-                DeliverySpot deliverySpot;
+                DeliverySpot? deliverySpot = null;
 
                 if (_config.EnableNextDelivery)
                 {
@@ -118,7 +118,7 @@ internal class NemligMqttService : BackgroundService
 
                 await _hassMqttManager.FlushAll(stoppingToken);
 
-                if (latestOrder?.Order != null)
+                if (deliverySpot is { State: DeliverySpotState.OngoingDelivery or DeliverySpotState.Packing or DeliverySpotState.ReadyForDelivery })
                 {
                     double minutes = (latestOrder.Order.DeliveryTime.Start - DateTimeOffset.UtcNow).TotalMinutes;
                     nextWait = minutes switch
@@ -127,7 +127,7 @@ internal class NemligMqttService : BackgroundService
                         var m when m <= 240 => TimeSpan.FromMinutes(20),
                         var m when m <= _config.DeliveryConfig.NextDeliveryCheckInterval.TotalMinutes => _config
                             .DeliveryConfig.NextDeliveryCheckInterval,
-                        _ => _config.CheckInterval
+                        _ => nextWait
                     };
                 }
             }
