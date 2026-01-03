@@ -189,7 +189,6 @@ internal class NemligNextDeliveryScraper : IResponseScraper
         _nextDeliveryTime.SetAttribute("start", order.DeliveryTime.Start);
         _nextDeliveryTime.SetAttribute("end", order.DeliveryTime.End);
         _nextDeliveryEditDeadline.SetValue(HassTopicKind.State, order.DeliveryDeadlineDateTime);
-        _nextDeliveryOnTheWay.SetValue(HassTopicKind.State, order.IsDeliveryOnWay || order.Status == OrderStatus.Ekspederes ? nameof(NemligDeliveryOnTheWay.Delivering) : nameof(NemligDeliveryOnTheWay.Idle));
         _nextDeliveryEditDeadlinePassed.SetValue(HassTopicKind.State, order.IsDeadlinePassed ? "on" : "off");
 
     }
@@ -197,9 +196,11 @@ internal class NemligNextDeliveryScraper : IResponseScraper
     private void UpdateDeliverySpot(DeliverySpot deliverySpot)
     {
         _nextDeliveryState.SetValue(HassTopicKind.State, deliverySpot.State.ToString());
+        _nextDeliveryOnTheWay.SetValue(HassTopicKind.State, IsDeliveryInProgress(deliverySpot.State) ? nameof(NemligDeliveryOnTheWay.Delivering) : nameof(NemligDeliveryOnTheWay.Idle));
         _nextDeliveryEta.SetValue(HassTopicKind.State, deliverySpot.DeliveryTime);
         _nextDeliveryEta.SetAttribute("range_start", deliverySpot.DeliveryInterval?.Start);
         _nextDeliveryEta.SetAttribute("range_end", deliverySpot.DeliveryInterval?.End);
+        
         if (deliverySpot.DeliveryInterval is not null)
         {
             double rangeMinutes = (deliverySpot.DeliveryInterval.End - deliverySpot.DeliveryInterval.Start).TotalMinutes;
@@ -208,6 +209,13 @@ internal class NemligNextDeliveryScraper : IResponseScraper
         }
 
         _nextDeliveryEtaRangeMinutes.SetValue(HassTopicKind.State, null);
+    }
+
+    private static bool IsDeliveryInProgress(DeliverySpotState state)
+    {
+        return state is DeliverySpotState.Packing
+            or DeliverySpotState.ReadyForDelivery
+            or DeliverySpotState.OngoingDelivery;
     }
 
     // Estimate updates are provided by the DeliverySpot scraper
