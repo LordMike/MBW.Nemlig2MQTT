@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using MBW.Client.NemligCom.Builder;
@@ -20,7 +21,8 @@ public class NemligClient
         _requestSigner = requestSigner;
     }
 
-    public async Task<WebApiLoginResponse> PerformLogin(string username, string password, CancellationToken token = default)
+    public async Task<WebApiLoginResponse> PerformLogin(string username, string password,
+        CancellationToken token = default)
     {
         var req = new
         {
@@ -33,6 +35,9 @@ public class NemligClient
 
         using HttpClient httpClient = _httpClientProducer.CreateClient();
         using HttpResponseMessage res = await httpClient.PostJson("/webapi/login", req, token: token);
+
+        if (!res.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Unable to login as {username}, response: {res.StatusCode}");
 
         return await res.Content.ReadAsJson<WebApiLoginResponse>(token);
     }
@@ -47,7 +52,8 @@ public class NemligClient
         builder.Add("take", take.ToString());
 
         using HttpClient httpClient = _httpClientProducer.CreateClient();
-        using HttpResponseMessage resp = await httpClient.GetAsync(builder, HttpCompletionOption.ResponseContentRead, token);
+        using HttpResponseMessage resp =
+            await httpClient.GetAsync(builder, HttpCompletionOption.ResponseContentRead, token);
 
         QueryStringCache.Return(builder);
 
@@ -62,7 +68,8 @@ public class NemligClient
         await _requestSigner.LoginIfNeeded(this, token);
 
         using HttpClient httpClient = _httpClientProducer.CreateClient();
-        using HttpResponseMessage resp = await httpClient.GetAsync("/webapi/order/GetLatestOrderHistory", HttpCompletionOption.ResponseContentRead, token);
+        using HttpResponseMessage resp = await httpClient.GetAsync("/webapi/order/GetLatestOrderHistory",
+            HttpCompletionOption.ResponseContentRead, token);
 
         LatestOrderHistory response = await resp.Content.ReadAsJson<LatestOrderHistory>(token);
 
@@ -76,7 +83,8 @@ public class NemligClient
         QueryStringBuilder builder = QueryStringCache.GetBuilder("/webapi/v2/order/GetOrderHistory/" + orderId);
 
         using HttpClient httpClient = _httpClientProducer.CreateClient();
-        using HttpResponseMessage resp = await httpClient.GetAsync(builder, HttpCompletionOption.ResponseContentRead, token);
+        using HttpResponseMessage resp =
+            await httpClient.GetAsync(builder, HttpCompletionOption.ResponseContentRead, token);
 
         QueryStringCache.Return(builder);
 
@@ -84,12 +92,14 @@ public class NemligClient
 
         return response;
     }
+
     public async Task<DeliverySpot> GetDeliverySpot(CancellationToken token = default)
     {
         await _requestSigner.LoginIfNeeded(this, token);
 
         using HttpClient httpClient = _httpClientProducer.CreateClient();
-        using HttpResponseMessage resp = await httpClient.GetAsync("/webapi/Order/DeliverySpot", HttpCompletionOption.ResponseContentRead, token);
+        using HttpResponseMessage resp = await httpClient.GetAsync("/webapi/Order/DeliverySpot",
+            HttpCompletionOption.ResponseContentRead, token);
 
         DeliverySpot response = await resp.Content.ReadAsJson<DeliverySpot>(token);
 
