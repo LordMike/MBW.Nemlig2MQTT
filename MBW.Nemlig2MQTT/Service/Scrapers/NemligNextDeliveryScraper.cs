@@ -29,6 +29,9 @@ internal class NemligNextDeliveryScraper : IResponseScraper
     private readonly ISensorContainer _nextDeliveryEditDeadline;
     private readonly ISensorContainer _nextDeliveryOnTheWay;
     private readonly ISensorContainer _nextDeliveryEditDeadlinePassed;
+    private readonly ISensorContainer _nextDeliveryState;
+    private readonly ISensorContainer _nextDeliveryEta;
+    private readonly ISensorContainer _nextDeliveryEtaRangeMinutes;
 
     public NemligNextDeliveryScraper(
         ILogger<NemligNextDeliveryScraper> logger,
@@ -99,12 +102,49 @@ internal class NemligNextDeliveryScraper : IResponseScraper
             })
             .ConfigureAliveService()
             .GetSensor();
+
+        _nextDeliveryState = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "delivery_state")
+            .ConfigureTopics(HassTopicKind.State)
+            .ConfigureNextDeliveryDevice()
+            .ConfigureDiscovery(discovery => { discovery.Name = "Delivery state"; })
+            .ConfigureAliveService()
+            .GetSensor();
+
+        _nextDeliveryEta = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "delivery_eta")
+            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
+            .ConfigureNextDeliveryDevice()
+            .ConfigureDiscovery(discovery =>
+            {
+                discovery.Name = "Delivery ETA";
+                discovery.DeviceClass = HassSensorDeviceClass.Timestamp;
+            })
+            .ConfigureAliveService()
+            .GetSensor();
+
+        _nextDeliveryEtaRangeMinutes = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetNextDeliveryDeviceId(), "delivery_eta_range_minutes")
+            .ConfigureTopics(HassTopicKind.State)
+            .ConfigureNextDeliveryDevice()
+            .ConfigureDiscovery(discovery =>
+            {
+                discovery.Name = "Delivery ETA range minutes";
+                discovery.UnitOfMeasurement = "min";
+            })
+            .ConfigureAliveService()
+            .GetSensor();
     }
 
     public async Task Scrape(object response, CancellationToken token = default)
     {
+        if (response is DeliverySpot deliverySpot)
+        {
+            UpdateDeliverySpot(deliverySpot);
+            return;
+        }
 
-        if (response is not LatestOrderHistory { Order: not null } latestOrderHistory ||
+        if (response is not LatestOrderHistory latestOrderHistory)
+            return;
+
+        if (latestOrderHistory.Order == null ||
             latestOrderHistory.Order.Status is not (OrderStatus.Bestilt or OrderStatus.Ekspederes) && !latestOrderHistory.Order.IsDeliveryOnWay)
         {
             // No next order
@@ -126,6 +166,9 @@ internal class NemligNextDeliveryScraper : IResponseScraper
         _nextDeliveryEditDeadline.SetValue(HassTopicKind.State, null);
         _nextDeliveryOnTheWay.SetValue(HassTopicKind.State, NemligDeliveryOnTheWay.Idle.ToString());
         _nextDeliveryEditDeadlinePassed.SetValue(HassTopicKind.State, "off");
+        _nextDeliveryState.SetValue(HassTopicKind.State, DeliverySpotState.None.ToString());
+        _nextDeliveryEta.SetValue(HassTopicKind.State, null);
+        _nextDeliveryEtaRangeMinutes.SetValue(HassTopicKind.State, null);
     }
 
     private async Task Update(LatestOrderHistoryOrder order, CancellationToken token)
@@ -148,6 +191,23 @@ internal class NemligNextDeliveryScraper : IResponseScraper
         _nextDeliveryEditDeadline.SetValue(HassTopicKind.State, order.DeliveryDeadlineDateTime);
         _nextDeliveryOnTheWay.SetValue(HassTopicKind.State, order.IsDeliveryOnWay || order.Status == OrderStatus.Ekspederes ? nameof(NemligDeliveryOnTheWay.Delivering) : nameof(NemligDeliveryOnTheWay.Idle));
         _nextDeliveryEditDeadlinePassed.SetValue(HassTopicKind.State, order.IsDeadlinePassed ? "on" : "off");
+
+    }
+
+    private void UpdateDeliverySpot(DeliverySpot deliverySpot)
+    {
+        _nextDeliveryState.SetValue(HassTopicKind.State, deliverySpot.State.ToString());
+        _nextDeliveryEta.SetValue(HassTopicKind.State, deliverySpot.DeliveryTime);
+        _nextDeliveryEta.SetAttribute("range_start", deliverySpot.DeliveryInterval?.Start);
+        _nextDeliveryEta.SetAttribute("range_end", deliverySpot.DeliveryInterval?.End);
+        if (deliverySpot.DeliveryInterval is not null)
+        {
+            double rangeMinutes = (deliverySpot.DeliveryInterval.End - deliverySpot.DeliveryInterval.Start).TotalMinutes;
+            _nextDeliveryEtaRangeMinutes.SetValue(HassTopicKind.State, rangeMinutes);
+            return;
+        }
+
+        _nextDeliveryEtaRangeMinutes.SetValue(HassTopicKind.State, null);
     }
 
     // Estimate updates are provided by the DeliverySpot scraper
