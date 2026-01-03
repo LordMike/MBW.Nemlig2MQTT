@@ -9,8 +9,8 @@ public class DeliverySpot
     public string OrderNumber { get; set; }
     public DeliverySpotState State { get; set; }
     public Deliverytime TimeSlot { get; set; }
-    public DateTime EditDeadline { get; set; }
+    public DateTimeOffset EditDeadline { get; set; }
     public float Progress { get; set; }
-    public DateTime DeliveryTime { get; set; }
+    public DateTimeOffset DeliveryTime { get; set; }
     public Deliverytime DeliveryInterval { get; set; }
 }
