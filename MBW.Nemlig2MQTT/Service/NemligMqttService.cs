@@ -82,8 +82,7 @@ internal class NemligMqttService : BackgroundService
                     latestOrder = await _nemligClient.GetLatestOrderHistory(stoppingToken);
                     await _scrapers.Process(latestOrder, stoppingToken);
 
-                    if (latestOrder.Order != null &&
-                        (latestOrder.Order.IsDeliveryOnWay || latestOrder.Order.Status == OrderStatus.Ekspederes))
+                    if (latestOrder.Order?.IsDeliveryOnWay == true)
                     {
                         try
                         {

@@ -161,6 +161,8 @@ internal class NemligNextDeliveryScraper : IResponseScraper
     {
         _latestOrderId = null;
         _nextDeliveryTime.SetValue(HassTopicKind.State, null);
+        _nextDeliveryTime.SetAttribute("start", null);
+        _nextDeliveryTime.SetAttribute("end", null);
         _nextDeliveryContents.SetValue(HassTopicKind.State, "");
         _nextDeliveryBoxes.SetValue(HassTopicKind.State, 0);
         _nextDeliveryEditDeadline.SetValue(HassTopicKind.State, null);
@@ -168,6 +170,8 @@ internal class NemligNextDeliveryScraper : IResponseScraper
         _nextDeliveryEditDeadlinePassed.SetValue(HassTopicKind.State, "off");
         _nextDeliveryState.SetValue(HassTopicKind.State, DeliverySpotState.None.ToString());
         _nextDeliveryEta.SetValue(HassTopicKind.State, null);
+        _nextDeliveryEta.SetAttribute("range_start", null);
+        _nextDeliveryEta.SetAttribute("range_end", null);
         _nextDeliveryEtaRangeMinutes.SetValue(HassTopicKind.State, null);
     }
 
@@ -188,8 +192,26 @@ internal class NemligNextDeliveryScraper : IResponseScraper
         _nextDeliveryTime.SetValue(HassTopicKind.State, order.DeliveryTime.Start);
         _nextDeliveryTime.SetAttribute("start", order.DeliveryTime.Start);
         _nextDeliveryTime.SetAttribute("end", order.DeliveryTime.End);
-        _nextDeliveryEditDeadline.SetValue(HassTopicKind.State, order.DeliveryDeadlineDateTime);
+        _nextDeliveryEditDeadline.SetValue(HassTopicKind.State, order.DeliveryDeadlineDateTimeOffset);
         _nextDeliveryEditDeadlinePassed.SetValue(HassTopicKind.State, order.IsDeadlinePassed ? "on" : "off");
+        _nextDeliveryState.SetValue(HassTopicKind.State, GetDeliveryState(order).ToString());
+        _nextDeliveryOnTheWay.SetValue(HassTopicKind.State, order.IsDeliveryOnWay ? nameof(NemligDeliveryOnTheWay.Delivering) : nameof(NemligDeliveryOnTheWay.Idle));
+
+        if (order.IsDeliveryOnWay)
+        {
+            // DeliverySpot is the only source of actual in-flight ETA/range data.
+            _nextDeliveryEta.SetValue(HassTopicKind.State, null);
+            _nextDeliveryEta.SetAttribute("range_start", null);
+            _nextDeliveryEta.SetAttribute("range_end", null);
+            _nextDeliveryEtaRangeMinutes.SetValue(HassTopicKind.State, null);
+        }
+        else
+        {
+            _nextDeliveryEta.SetValue(HassTopicKind.State, order.DeliveryTime.Start);
+            _nextDeliveryEta.SetAttribute("range_start", order.DeliveryTime.Start);
+            _nextDeliveryEta.SetAttribute("range_end", order.DeliveryTime.End);
+            _nextDeliveryEtaRangeMinutes.SetValue(HassTopicKind.State, (order.DeliveryTime.End - order.DeliveryTime.Start).TotalMinutes);
+        }
 
     }
 
@@ -216,6 +238,19 @@ internal class NemligNextDeliveryScraper : IResponseScraper
         return state is DeliverySpotState.Packing
             or DeliverySpotState.ReadyForDelivery
             or DeliverySpotState.OngoingDelivery;
+    }
+
+    private static DeliverySpotState GetDeliveryState(LatestOrderHistoryOrder order)
+    {
+        if (order.IsDeliveryOnWay)
+            return DeliverySpotState.OngoingDelivery;
+
+        return order.Status switch
+        {
+            OrderStatus.Bestilt => DeliverySpotState.Placed,
+            OrderStatus.Ekspederes => DeliverySpotState.Packing,
+            _ => DeliverySpotState.None
+        };
     }
 
     // Estimate updates are provided by the DeliverySpot scraper

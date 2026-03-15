@@ -29,4 +29,7 @@ public class Order
     public bool HasInvoice { get; set; }
     public bool IsMinimumOrderTotalAchieved { get; set; }
     public bool IsDeadlinePassed { get; set; }
+
+    public DateTimeOffset DeliveryDeadlineDateTimeOffset => new(DeliveryDeadlineDateTime,
+        TimeSpan.FromMinutes(DeliveryDeadlineDateTimezoneOffset));
 }
