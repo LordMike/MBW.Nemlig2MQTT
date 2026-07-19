@@ -20,7 +20,7 @@ internal class ApiOperationalContainer : BackgroundService
     public const string OkMessage = "ok";
     public const string ProblemMessage = "problem";
 
-    private ISensorContainer _apiOperational;
+    private IHassMqttEntity _apiOperational;
 
     public ApiOperationalContainer(HassMqttManager hassMqttManager)
     {
@@ -53,10 +53,9 @@ internal class ApiOperationalContainer : BackgroundService
         _apiOperational.SetAttribute("last_bad_status", errorMessage);
     }
 
-    private ISensorContainer CreateSystemEntities()
+    private IHassMqttEntity CreateSystemEntities()
     {
-        return _hassMqttManager.ConfigureSensor<MqttBinarySensor>(HassUniqueIdBuilder.GetSystemDeviceId(), "api_operational")
-            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
+        return _hassMqttManager.CreateEntity<MqttBinarySensor>()
             .ConfigureSystemDevice()
             .ConfigureDiscovery(discovery =>
             {
@@ -67,7 +66,8 @@ internal class ApiOperationalContainer : BackgroundService
                 discovery.PayloadOff = OkMessage;
             })
             .ConfigureAliveService()
-            .GetSensor();
+            .PublishStateAndAttributesTogether()
+            .Build(HassUniqueIdBuilder.GetSystemDeviceId(), "api_operational");
     }
 
 }

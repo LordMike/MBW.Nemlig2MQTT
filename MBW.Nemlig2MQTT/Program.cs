@@ -21,6 +21,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Serilog;
+using Serilog.Settings.Configuration;
 using WebProxy = System.Net.WebProxy;
 
 namespace MBW.Nemlig2MQTT;
@@ -55,7 +56,10 @@ internal class Program
             .ConfigureLogging((context, builder) =>
             {
                 Log.Logger = new LoggerConfiguration()
-                    .ReadFrom.Configuration(context.Configuration, "Logging")
+                    .ReadFrom.Configuration(context.Configuration, new ConfigurationReaderOptions
+                    {
+                        SectionName = "Logging"
+                    })
                     .CreateLogger();
 
                 builder
@@ -71,7 +75,6 @@ internal class Program
             {
                 NemligHassConfiguration nemligConfig = context.Configuration.GetSection("HASS").Get<NemligHassConfiguration>();
                 configuration.SendDiscoveryDocuments = nemligConfig.EnableHASSDiscovery;
-                configuration.ValidateDiscoveryDocuments = true;
             })
             .Configure<CommonMqttConfiguration>(x => x.ClientId = "nemlig2mqtt")
             .Configure<CommonMqttConfiguration>(context.Configuration.GetSection("MQTT"));

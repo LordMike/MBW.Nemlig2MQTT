@@ -21,6 +21,8 @@ namespace MBW.Nemlig2MQTT.Service;
 
 internal class NemligMqttService : BackgroundService
 {
+    private const int FlushBusyRetries = 3;
+
     private readonly ILogger<NemligMqttService> _logger;
     private readonly NemligClient _nemligClient;
     private readonly HassMqttManager _hassMqttManager;
@@ -57,12 +59,12 @@ internal class NemligMqttService : BackgroundService
     {
         // Prepare force sync button
         {
-            _hassMqttManager.ConfigureSensor<MqttButton>(HassUniqueIdBuilder.GetSystemDeviceId(), "force_sync")
+            _hassMqttManager.CreateEntity<MqttButton>()
                 .ConfigureSystemDevice()
                 .ConfigureDiscovery(discovery => { discovery.Name = "Nemlig force sync all"; })
                 .ConfigureAliveService()
                 .ConfigureTopics(HassTopicKind.Command)
-                .GetSensor();
+                .Build(HassUniqueIdBuilder.GetSystemDeviceId(), "force_sync");
         }
 
         // Update loop
@@ -75,7 +77,7 @@ internal class NemligMqttService : BackgroundService
 
             try
             {
-                DeliverySpot? deliverySpot = null;
+                DeliverySpot deliverySpot = null;
 
                 if (_config.EnableNextDelivery)
                 {
@@ -113,8 +115,6 @@ internal class NemligMqttService : BackgroundService
                 // Track API operational status
                 _apiOperationalContainer.MarkOk();
 
-                await _hassMqttManager.FlushAll(stoppingToken);
-
                 if (deliverySpot is { State: DeliverySpotState.OngoingDelivery or DeliverySpotState.Packing or DeliverySpotState.ReadyForDelivery })
                 {
                     double minutes = (latestOrder.Order.DeliveryTime.Start - DateTimeOffset.UtcNow).TotalMinutes;
@@ -140,6 +140,9 @@ internal class NemligMqttService : BackgroundService
                 _apiOperationalContainer.MarkError(e.Message);
             }
 
+            if (!stoppingToken.IsCancellationRequested)
+                await FlushMqtt(stoppingToken);
+
             _logger.LogInformation("Next query: {WaitTime} minutes", nextWait.TotalMinutes);
 
             // Wait for next event, or the check interval
@@ -154,6 +157,25 @@ internal class NemligMqttService : BackgroundService
             catch (OperationCanceledException)
             {
             }
+        }
+    }
+
+    private async Task FlushMqtt(CancellationToken token)
+    {
+        MqttFlushResult result = await _hassMqttManager.FlushAll(token);
+        for (int attempt = 0; result.Status == MqttFlushStatus.Busy && attempt < FlushBusyRetries; attempt++)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(100), token);
+            result = await _hassMqttManager.FlushAll(token);
+        }
+
+        if (result.Status == MqttFlushStatus.Disconnected)
+        {
+            _logger.LogDebug("MQTT flush deferred until the client reconnects");
+        }
+        else if (result.Status != MqttFlushStatus.Completed)
+        {
+            _logger.LogWarning("MQTT flush did not complete: {Status}", result.Status);
         }
     }
 }

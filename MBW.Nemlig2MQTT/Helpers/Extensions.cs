@@ -23,7 +23,7 @@ internal static class Extensions
             .AddHostedService(x => x.GetRequiredService<TService>());
     }
 
-    public static IDiscoveryDocumentBuilder<T> ConfigureOrderStatisticsDevice<T>(this IDiscoveryDocumentBuilder<T> builder) where T : IHassDiscoveryDocument
+    public static IEntityBuilder<T> ConfigureOrderStatisticsDevice<T>(this IEntityBuilder<T> builder) where T : IHassDiscoveryDocument
     {
         return builder.ConfigureDevice(device =>
         {
@@ -32,7 +32,7 @@ internal static class Extensions
         });
     }
 
-    public static IDiscoveryDocumentBuilder<T> ConfigureNextDeliveryDevice<T>(this IDiscoveryDocumentBuilder<T> builder) where T : IHassDiscoveryDocument
+    public static IEntityBuilder<T> ConfigureNextDeliveryDevice<T>(this IEntityBuilder<T> builder) where T : IHassDiscoveryDocument
     {
         return builder.ConfigureDevice(device =>
         {
@@ -41,7 +41,7 @@ internal static class Extensions
         });
     }
 
-    public static IDiscoveryDocumentBuilder<T> ConfigureSystemDevice<T>(this IDiscoveryDocumentBuilder<T> builder) where T : IHassDiscoveryDocument
+    public static IEntityBuilder<T> ConfigureSystemDevice<T>(this IEntityBuilder<T> builder) where T : IHassDiscoveryDocument
     {
         return builder.ConfigureDevice(device =>
         {

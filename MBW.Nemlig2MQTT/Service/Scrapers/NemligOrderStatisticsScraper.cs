@@ -21,10 +21,10 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
 {
     private readonly ILogger<NemligOrderStatisticsScraper> _logger;
 
-    private readonly ISensorContainer _pastMonthOrders;
-    private readonly ISensorContainer _pastMonthOrderSum;
-    private readonly ISensorContainer _pastQuarterOrders;
-    private readonly ISensorContainer _pastQuarterOrderSum;
+    private readonly IHassMqttEntity _pastMonthOrders;
+    private readonly IHassMqttEntity _pastMonthOrderSum;
+    private readonly IHassMqttEntity _pastQuarterOrders;
+    private readonly IHassMqttEntity _pastQuarterOrderSum;
 
     public NemligOrderStatisticsScraper(
         ILogger<NemligOrderStatisticsScraper> logger,
@@ -32,15 +32,14 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
     {
         _logger = logger;
 
-        _pastMonthOrders = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_1mo_count")
-            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
+        _pastMonthOrders = hassMqttManager.CreateEntity<MqttSensor>()
             .ConfigureOrderStatisticsDevice()
             .ConfigureDiscovery(discovery => { discovery.Name = "Orders in the past 30 days"; })
             .ConfigureAliveService()
-            .GetSensor();
+            .PublishStateAndAttributesTogether()
+            .Build(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_1mo_count");
 
-        _pastMonthOrderSum = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_1mo_sum")
-            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
+        _pastMonthOrderSum = hassMqttManager.CreateEntity<MqttSensor>()
             .ConfigureOrderStatisticsDevice()
             .ConfigureDiscovery(discovery =>
             {
@@ -49,17 +48,17 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
                 discovery.DeviceClass = HassSensorDeviceClass.Monetary;
             })
             .ConfigureAliveService()
-            .GetSensor();
+            .PublishStateAndAttributesTogether()
+            .Build(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_1mo_sum");
 
-        _pastQuarterOrders = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_3mo_count")
-            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
+        _pastQuarterOrders = hassMqttManager.CreateEntity<MqttSensor>()
             .ConfigureOrderStatisticsDevice()
             .ConfigureDiscovery(discovery => { discovery.Name = "Orders in the past 90 days"; })
             .ConfigureAliveService()
-            .GetSensor();
+            .PublishStateAndAttributesTogether()
+            .Build(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_3mo_count");
 
-        _pastQuarterOrderSum = hassMqttManager.ConfigureSensor<MqttSensor>(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_3mo_sum")
-            .ConfigureTopics(HassTopicKind.State, HassTopicKind.JsonAttributes)
+        _pastQuarterOrderSum = hassMqttManager.CreateEntity<MqttSensor>()
             .ConfigureOrderStatisticsDevice()
             .ConfigureDiscovery(discovery =>
             {
@@ -68,7 +67,8 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
                 discovery.DeviceClass = HassSensorDeviceClass.Monetary;
             })
             .ConfigureAliveService()
-            .GetSensor();
+            .PublishStateAndAttributesTogether()
+            .Build(HassUniqueIdBuilder.GetOrderStatisticsDeviceId(), "orders_3mo_sum");
     }
 
     public Task Scrape(object response, CancellationToken token = default)
@@ -76,7 +76,7 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
         if (response is not BasicOrderHistory orderHistory)
             return Task.CompletedTask;
 
-        static void Process([InstantHandle]IEnumerable<Order> orders, ISensorContainer ordersSensor, ISensorContainer sumSensor)
+        static void Process([InstantHandle]IEnumerable<Order> orders, IHassMqttEntity ordersSensor, IHassMqttEntity sumSensor)
         {
             int count = 0;
             decimal sum = 0;
@@ -94,12 +94,10 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
             }
 
             ordersSensor.SetValue(HassTopicKind.State, count);
-            ordersSensor.SetAttribute("Earliest order", earliest);
-            ordersSensor.SetAttribute("Latest order", latest);
+            SetOrderBounds(ordersSensor, earliest, latest);
 
             sumSensor.SetValue(HassTopicKind.State, sum);
-            sumSensor.SetAttribute("Earliest order", earliest);
-            sumSensor.SetAttribute("Latest order", latest);
+            SetOrderBounds(sumSensor, earliest, latest);
         }
 
         DateTime bounds = DateTime.UtcNow.AddMonths(-1);
@@ -116,5 +114,20 @@ internal class NemligOrderStatisticsScraper : IResponseScraper
 
         _logger.LogInformation("Assessed {Count} orders for past 30/90 days stats", orderHistory.Orders.Length);
         return Task.CompletedTask;
+    }
+
+    private static void SetOrderBounds(IHassMqttEntity sensor, DateTime? earliest, DateTime? latest)
+    {
+        MqttAttributesTopic attributes = sensor.GetAttributesSender();
+
+        if (earliest.HasValue)
+            attributes.SetAttribute("Earliest order", earliest.Value);
+        else
+            attributes.RemoveAttribute("Earliest order");
+
+        if (latest.HasValue)
+            attributes.SetAttribute("Latest order", latest.Value);
+        else
+            attributes.RemoveAttribute("Latest order");
     }
 }
