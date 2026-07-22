@@ -1,12 +1,11 @@
 # This file is centrally managed; local edits may be lost.
 
 name: Collect publishable outputs
-description: Detect package, Docker, and optional deployment outputs without publishing
+description: Detect package and Docker outputs without publishing
 
 # Contract:
 # - Package presence, not project inspection, selects package publication.
 # - Dockerfile presence, not repository configuration, selects Docker publication.
-# - The exact notify_hass_addons action path selects add-on notification.
 # - This action never builds Docker images and never receives credentials.
 
 outputs:
@@ -14,8 +13,6 @@ outputs:
     value: ${{ steps.packages.outputs.has-packages }}
   has-docker:
     value: ${{ steps.docker.outputs.has-docker }}
-  has-hass-addons-notification:
-    value: ${{ steps.hass_addons.outputs.enabled }}
 
 runs:
   using: composite
@@ -102,9 +99,3 @@ runs:
 
         echo 'has-docker=true' >> "$GITHUB_OUTPUT"
         jq -r '.[] | "Docker: \(.dockerfile) -> \(.image) [\(.platforms)]"' "$metadata"
-
-    - name: Detect Home Assistant add-on notification
-      id: hass_addons
-      if: hashFiles('.github/actions/notify_hass_addons/action.yml') != ''
-      shell: bash
-      run: echo 'enabled=true' >> "$GITHUB_OUTPUT"
