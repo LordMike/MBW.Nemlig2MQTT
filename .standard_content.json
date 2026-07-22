@@ -1,5 +1,5 @@
 {
-  "$schema": "https://github.com/LordMike/MBW.Tools.GhStandardContent/spec/StandardContent.json",
+  "$schema": "https://raw.githubusercontent.com/LordMike/MBW.Tools.GhStandardContent/master/spec/StandardContent.json",
   "meta": {
     "repo": "LordMike/MBW.Nemlig2MQTT",
     "profiles": [
@@ -23,6 +23,6 @@
       ".gitignore",
       "Directory.Build.props"
     ],
-    "last_updated": "2026-07-21T21:26:15.1230753+00:00"
+    "last_updated": "2026-07-22T20:51:55.2092146\u002B00:00"
   }
 }
