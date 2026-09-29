@@ -217,6 +217,15 @@ internal class NemligNextDeliveryScraper : IResponseScraper
     {
         _nextDeliveryState.SetValue(HassTopicKind.State, deliverySpot.State.ToString());
         _nextDeliveryOnTheWay.SetValue(HassTopicKind.State, IsDeliveryInProgress(deliverySpot.State) ? nameof(NemligDeliveryOnTheWay.Delivering) : nameof(NemligDeliveryOnTheWay.Idle));
+
+        if (deliverySpot.State == DeliverySpotState.CompletedDelivery)
+        {
+            _nextDeliveryEta.SetValue(HassTopicKind.State, MqttValue.Null);
+            _nextDeliveryEta.GetAttributesSender().Clear();
+            _nextDeliveryEtaRangeMinutes.SetValue(HassTopicKind.State, MqttValue.Null);
+            return;
+        }
+
         _nextDeliveryEta.SetValue(HassTopicKind.State, deliverySpot.DeliveryTime);
         MqttAttributesTopic etaAttributes = _nextDeliveryEta.GetAttributesSender();
         

@@ -84,7 +84,8 @@ internal class NemligMqttService : BackgroundService
                     latestOrder = await _nemligClient.GetLatestOrderHistory(stoppingToken);
                     await _scrapers.Process(latestOrder, stoppingToken);
 
-                    if (latestOrder.Order?.IsDeliveryOnWay == true)
+                    if (latestOrder.Order is { } order &&
+                        (order.IsDeliveryOnWay || IsInsidePlannedWindow(order, DateTimeOffset.UtcNow)))
                     {
                         try
                         {
@@ -117,10 +118,18 @@ internal class NemligMqttService : BackgroundService
 
                 if (deliverySpot is { State: DeliverySpotState.OngoingDelivery or DeliverySpotState.Packing or DeliverySpotState.ReadyForDelivery })
                 {
-                    double minutes = (latestOrder.Order.DeliveryTime.Start - DateTimeOffset.UtcNow).TotalMinutes;
+                    DateTimeOffset now = DateTimeOffset.UtcNow;
+                    double minutes = (latestOrder.Order.DeliveryTime.Start - now).TotalMinutes;
+                    bool narrowEtaIsNear = deliverySpot.DeliveryInterval is { } interval &&
+                                           interval.End > now &&
+                                           interval.Start - now <= TimeSpan.FromMinutes(30) &&
+                                           interval.End - interval.Start <= TimeSpan.FromHours(1);
+
+                    // Once the planned slot starts, its start time alone must not keep
+                    // the service on five-minute polling throughout the whole slot.
                     nextWait = minutes switch
                     {
-                        var m when m <= 30 => TimeSpan.FromMinutes(5),
+                        var m when m <= 30 && (m > 0 || narrowEtaIsNear) => TimeSpan.FromMinutes(5),
                         var m when m <= 240 => TimeSpan.FromMinutes(20),
                         var m when m <= _config.DeliveryConfig.NextDeliveryCheckInterval.TotalMinutes => _config
                             .DeliveryConfig.NextDeliveryCheckInterval,
@@ -158,6 +167,12 @@ internal class NemligMqttService : BackgroundService
             {
             }
         }
+    }
+
+    private static bool IsInsidePlannedWindow(LatestOrderHistoryOrder order, DateTimeOffset now)
+    {
+        return order.Status is (OrderStatus.Bestilt or OrderStatus.Ekspederes) &&
+               order.DeliveryTime.Start <= now && now < order.DeliveryTime.End;
     }
 
     private async Task FlushMqtt(CancellationToken token)
